@@ -221,7 +221,7 @@ local function updatePositions()
 				pos = WorldToScreen(v.object.Position)
 				isVisible = not (pos.X == 0 and pos.Y == 0) and CheckEnabled(v.text.Text)
 			end)
-			if rootPart or v.model == v.object then
+			if rootPart then
 				local temp = v.model:GetFullName()
 				if not string.find(temp, "Workspace") then
 					isVisible = false
@@ -291,9 +291,7 @@ local function addObjects(v)
 					espText.Color = objData.Color
 					espText.Outline = true
 					espText.Center = true
-					if v.Name == "Shadow" then
-						print("yeah")
-					end
+
 					table.insert(TempObjects, v.Address)
 					local entry = {}
 					entry.object = rootPart
@@ -503,5 +501,3 @@ spawn(function()
 		task.wait()
 	end
 end)
-
-
