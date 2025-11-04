@@ -34,7 +34,8 @@ local textLookup = {
 	Digital = "johndoeDigitalFootprint",
 	Ritual = "twoTimeRespawn",
 	Sentry = "buildermanSentry",
-	Dispenser = "buildermanDispenser"
+	Dispenser = "buildermanDispenser",
+	Shadow = "Digital Footprint"
 }
 
 local ESPObjects = {
@@ -103,10 +104,10 @@ local ESPObjects = {
 		Special = "TwoTime"
 	},
 	
-	["Digital Footprint"] = {
+	["Shadow"] = {
 		Type = "Part",
 		Root = "None",
-		Text = "Footprint",
+		Text = "Digital Footprint",
 		Color = Color3.fromHex("fcf805"),
 		Special = "JohnDoeTrap"
 	},
@@ -220,7 +221,7 @@ local function updatePositions()
 				pos = WorldToScreen(v.object.Position)
 				isVisible = not (pos.X == 0 and pos.Y == 0) and CheckEnabled(v.text.Text)
 			end)
-			if rootPart then
+			if rootPart or v.model == v.object then
 				local temp = v.model:GetFullName()
 				if not string.find(temp, "Workspace") then
 					isVisible = false
@@ -290,7 +291,9 @@ local function addObjects(v)
 					espText.Color = objData.Color
 					espText.Outline = true
 					espText.Center = true
-
+					if v.Name == "Shadow" then
+						print("yeah")
+					end
 					table.insert(TempObjects, v.Address)
 					local entry = {}
 					entry.object = rootPart
@@ -308,11 +311,14 @@ end
 
 local function updateObjects()
 	-- jd traps
-	if game.Workspace.Map.Ingame:FindFirstChild("Shadows") then
-		for _, v in game.Workspace.Map.Ingame.Shadows:GetChildren() do
-			addObjects(v)
+	for _, obj in ipairs(game.Workspace.Map.Ingame:GetChildren()) do
+		if string.find(obj.Name, "Shadows") then
+			for _, v in ipairs(obj:GetChildren()) do
+				addObjects(v)
+			end
 		end
 	end
+
 	-- everything else
 	for _, v in game.Workspace.Map.Ingame.Map:GetChildren() do
 		addObjects(v)
@@ -497,3 +503,5 @@ spawn(function()
 		task.wait()
 	end
 end)
+
+
