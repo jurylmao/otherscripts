@@ -8,6 +8,7 @@ local lastupdate = 0
 local stamina
 local dragging
 local updatesPaused = false
+local eventObjects = true
 
 local Toggles = {
 	taphTripmine = true,
@@ -21,7 +22,9 @@ local Toggles = {
 	buildermanSentry = true,
 	buildermanDispenser = true,
 	espEnabled = true,
-	staminaOnMouse = false
+	eventItem = true,
+	staminaOnMouse = false,
+	veeronicaSpray = true
 }
 
 local textLookup = {
@@ -35,7 +38,9 @@ local textLookup = {
 	Ritual = "twoTimeRespawn",
 	Sentry = "buildermanSentry",
 	Dispenser = "buildermanDispenser",
-	Shadow = "Digital Footprint"
+	Shadow = "johndoeDigitalFootprint",
+	Candy = "eventItem",
+	Graffiti = "veeronicaSpray"
 }
 
 local ESPObjects = {
@@ -95,10 +100,40 @@ local ESPObjects = {
 		Text = "Sentry",
 		Color = Color3.fromHex("66fffc")
 	},
-
+	
+	["doothsek"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["dumsek"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["dusek"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["umdum"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["toon dusek"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
 	["RespawnLocation"] = {
 		Type = "Part",
-		Root = "RespawnLocation",
+		Root = "None",
 		Text = "Ritual",
 		Color = Color3.fromHex("ffffff"),
 		Special = "TwoTime"
@@ -111,7 +146,17 @@ local ESPObjects = {
 		Color = Color3.fromHex("fcf805"),
 		Special = "JohnDoeTrap"
 	},
+	
+	["Spray"] = {
+		Type = "Model",
+		Root = "Hitbox",
+		Text = "Graffiti",
+		Color = Color3.fromHex("ecc3dc"),
+		Special = "Veeronica"
+	},
 }
+
+
 
 print("hello lace")
 
@@ -185,6 +230,12 @@ local function CreateHeader(text:string, pos:Vector2)
 	AddElement(HeaderText)
 end
 
+local function RemoveObject(v)
+	v.text:Remove()
+	table.remove(TextList, table.find(TextList, v))
+	table.remove(TempObjects, table.find(TempObjects, v.Address))
+end
+
 local function CheckEnabled(text)
 	for keyword, varname in pairs(textLookup) do
 		if string.find(text, keyword) and Toggles[varname] then
@@ -205,6 +256,8 @@ local function SetDisabled(name)
 		Toggles[name] = false
 	end
 end
+
+
 -- special stuff
 local function twoTimeSpecial(object:Part)
 	local start = object.Name:find("RespawnLocation")
@@ -212,37 +265,46 @@ local function twoTimeSpecial(object:Part)
 	return prefix .. "'s Ritual" 
 end
 
+local function veeronicaSpecial(object:Model)
+	local start = object.Name:find("Spray")
+	local prefix = object.Name:sub(1, start - 1)
+	return prefix .. "'s Graffiti" 
+end
+
 local function updatePositions()
 	for _, v in TextList do
-		if v.object.Position ~= nil then
-			local rootPart = v.object or nil
-			local pos, isVisible
-			local s, r = pcall(function()
-				pos = WorldToScreen(v.object.Position)
+		local pos
+		local isVisible
+		if v.object then
+			local objPos = v.object.Position or nil
+			if objPos then
+				pos = WorldToScreen(objPos)
 				isVisible = not (pos.X == 0 and pos.Y == 0) and CheckEnabled(v.text.Text)
-			end)
-			if rootPart then
-				local temp = v.model:GetFullName()
-				if not string.find(temp, "Workspace") then
+				
+				if string.find(v.object:GetFullName(), "Workspace") then
+					isVisible = true
+				else
 					isVisible = false
 				end
+				
+				if isVisible and Toggles.espEnabled then
+					v.text.Visible = true
+					v.text.Position = pos
+				else
+					v.text.Visible = false
+				end
+				
 			end
-
-			if isVisible and Toggles.espEnabled == true then
-				v.text.Visible = true
-				v.text.Position = pos
-			else
-				v.text.Visible = false
-			end
-
-			if v.object.Name == "Main" and game.Workspace.Map.Ingame:FindFirstChild("Map") and not string.find(v.model.Name, "Fake") then
-				local Progress = 0
-
-				local success, result = pcall(function()
-					return v.model:FindFirstChild("Progress").Value
+			
+			if v.object and v.object.Name == "Main" and game.Workspace.Map:FindFirstChild("Ingame") and game.Workspace.Map.Ingame:FindFirstChild("Map") then
+				local value = 0
+				local ok, val = pcall(function()
+					local prog = v.model:FindFirstChild("Progress")
+					return prog and prog.Value or 0
 				end)
-				local value = result or 0
+				if ok then value = val end
 
+				local Progress = 0
 				if value == 26 then
 					Progress = 1
 				elseif value == 52 then
@@ -253,18 +315,12 @@ local function updatePositions()
 					Progress = 4
 					v.text.Color = Color3.fromHex("764a4a")
 				end
-
 				v.text.Text = "Generator (" .. tostring(Progress) .. "/4)"
 			end
-
-
-		else
-			v.text:Remove()
-			table.remove(TextList, table.find(TextList, v))
-			table.remove(TempObjects, table.find(TempObjects, v.Address))
 		end
 	end
 end
+
 
 local function addObjects(v)
 	for objName, objData in pairs(ESPObjects) do
@@ -273,12 +329,16 @@ local function addObjects(v)
 			if objData.Root == "None" or rootPart then
 				if objData.Special == "TwoTime" then
 					objData.Text = twoTimeSpecial(v)
+					rootPart = v
+				end
+				
+				if objData.Special == "Veeronica" then
+					objData.Text = veeronicaSpecial(v)
 				end
 				
 				if objData.Special == "JohnDoeTrap" then
 					rootPart = v
 				end
-				
 				if rootPart ~= nil then
 					local espText = Drawing.new("Text")
 					espText.Text = objData.Text
@@ -291,14 +351,17 @@ local function addObjects(v)
 					espText.Color = objData.Color
 					espText.Outline = true
 					espText.Center = true
-
-					table.insert(TempObjects, v.Address)
-					local entry = {}
-					entry.object = rootPart
-					entry.text = espText
-					entry.model = v
-					entry.temporary = true
-					table.insert(TextList, entry)
+				if rootPart ~= nil then
+						table.insert(TempObjects, v.Address)
+						local entry = {}
+						entry.object = rootPart
+						entry.text = espText
+						entry.model = v
+						entry.temporary = true
+						table.insert(TextList, entry)
+				else
+					espText:Remove()
+				end
 				else
 					return
 				end
@@ -318,17 +381,26 @@ local function updateObjects()
 	end
 
 	-- everything else
-	for _, v in game.Workspace.Map.Ingame.Map:GetChildren() do
-		addObjects(v)
+	if workspace:FindFirstChild('Map') then
+		if workspace.Map:FindFirstChild('Ingame') then
+			for _, v in game.Workspace.Map.Ingame.Map:GetChildren() do
+				addObjects(v)
+			end
+			for _, v in game.Workspace.Map.Ingame:GetChildren() do
+				addObjects(v)
+			end
+			for _, v in game.Workspace:GetChildren() do
+				addObjects(v)
+			end
+		end
 	end
-
-	for _, v in game.Workspace.Map.Ingame:GetChildren() do
-		addObjects(v)
+	-- event candy
+	if game.Workspace.Map.Ingame:FindFirstChild("CurrencyLocations") then
+		for _, v in game.Workspace.Map.Ingame:FindFirstChild("CurrencyLocations"):GetChildren() do
+			addObjects(v)
+		end
 	end
-
-	for _, v in game.Workspace:GetChildren() do
-		addObjects(v)
-	end
+	
 end
 
 local function updateQuickUI()
@@ -371,7 +443,7 @@ local function updateQuickUI()
 end
 
 local Drag = Drawing.new("Square")
-Drag.Size = Vector2.new(200, 390)
+Drag.Size = Vector2.new(200, 442)
 Drag.Position = Vector2.new(100, 100)
 Drag.Color = Color3.fromRGB(30, 30, 30)
 Drag.Filled = true
@@ -381,7 +453,7 @@ local Title = Drawing.new("Text")
 Title.ZIndex = 3
 Title.Position = Vector2.new(105, 102)
 Title.Color = Color3.fromRGB(255, 255, 255)
-Title.Text = "shitsaken // V1.0 // Ping: 67"
+Title.Text = "shitsaken // V1.1 // Ping: 67"
 
 local Background = Drawing.new("Square")
 Background.ZIndex = 1
@@ -405,16 +477,17 @@ CreateCheckbox("ESP Enabled", Toggles.espEnabled, Vector2.new(105, 140), "espEna
 CreateCheckbox("Taph Tripmine ESP", Toggles.taphTripmine, Vector2.new(105, 168), "taphTripmine")
 CreateCheckbox("Taph Tripwire ESP", Toggles.taphTripwire, Vector2.new(105, 196), "taphTripwire")
 CreateCheckbox("Two Time Respawn ESP", Toggles.twoTimeRespawn, Vector2.new(105, 224), "twoTimeRespawn")
-CreateCheckbox("Bloxy Cola ESP", Toggles.gameCola, Vector2.new(105, 252), "gameCola")
-CreateCheckbox("Medkit ESP", Toggles.gameMedkit, Vector2.new(105, 280), "gameMedkit")
-CreateCheckbox("Builderman Sentry ESP", Toggles.buildermanSentry, Vector2.new(105, 308), "buildermanSentry")
-CreateCheckbox("Builderman Dispenser ESP", Toggles.buildermanDispenser, Vector2.new(105, 336), "buildermanDispenser")
-CreateCheckbox("Generator ESP", Toggles.gameGenerator, Vector2.new(105, 364), "gameGenerator")
-CreateCheckbox("Fake Generator ESP", Toggles.noliGenerator, Vector2.new(105, 392), "noliGenerator")
-CreateCheckbox("Digital Footprint ESP", Toggles.johndoeDigitalFootprint, Vector2.new(105, 420), "johndoeDigitalFootprint")
-CreateHeader("UI Stuff", Vector2.new(105, 445))
-CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 462), "staminaOnMouse")
-
+CreateCheckbox("Veeronica Graffiti ESP", Toggles.veeronicaSpray, Vector2.new(105, 252), "veeronicaSpray")
+CreateCheckbox("Bloxy Cola ESP", Toggles.gameCola, Vector2.new(105, 280), "gameCola")
+CreateCheckbox("Medkit ESP", Toggles.gameMedkit, Vector2.new(105, 308), "gameMedkit")
+CreateCheckbox("Builderman Sentry ESP", Toggles.buildermanSentry, Vector2.new(105, 336), "buildermanSentry")
+CreateCheckbox("Builderman Dispenser ESP", Toggles.buildermanDispenser, Vector2.new(105, 364), "buildermanDispenser")
+CreateCheckbox("Generator ESP", Toggles.gameGenerator, Vector2.new(105, 392), "gameGenerator")
+CreateCheckbox("Fake Generator ESP", Toggles.noliGenerator, Vector2.new(105, 420), "noliGenerator")
+CreateCheckbox("Digital Footprint ESP", Toggles.johndoeDigitalFootprint, Vector2.new(105, 448), "johndoeDigitalFootprint")
+CreateCheckbox("Event Candy ESP", Toggles.eventItem, Vector2.new(105, 476), "eventPickups")
+CreateHeader("UI Stuff", Vector2.new(105, 501))
+CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 518), "staminaOnMouse")
 local function UIUpdate()
 
 	-- button presses
@@ -435,7 +508,7 @@ local function UIUpdate()
 		end
 	end
 
-	Title.Text = "shitsaken // V1.0 // Ping: " .. tostring(math.floor(memory_read("double", game:FindFirstChild("Stats"):FindFirstChild("PerformanceStats"):FindFirstChild("Ping").Address + 0xC8)))
+	Title.Text = "shitsaken // V1.1 // Ping: " .. tostring(math.floor(memory_read("double", game:FindFirstChild("Stats"):FindFirstChild("PerformanceStats"):FindFirstChild("Ping").Address + 0xC8)))
 
 	local offsets = {}
 	if iskeypressed(0x01) and Drag.Position.X < Mouse.X and Mouse.X < Drag.Position.X + Drag.Size.X and Drag.Position.Y < Mouse.Y and Mouse.Y < Drag.Position.Y + Drag.Size.Y  then
@@ -478,10 +551,11 @@ end)
 
 spawn(function()
 	while true do
+		
+		
 		if game.Workspace.Map.Ingame:FindFirstChild("Map") then
 			updatePositions()
-		end
-		if not game.Workspace.Map.Ingame:FindFirstChild("Map") then
+		else
 			for _, v in TextList do
 				v.text:Remove()
 			end
@@ -499,5 +573,5 @@ spawn(function()
 			updatesPaused = false
 		end
 		task.wait()
-	end
+		end
 end)
