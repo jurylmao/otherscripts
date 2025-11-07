@@ -1,3 +1,5 @@
+local versionId = "v1.12"
+
 local Players = game:GetService("Players")
 local Mouse = Players.LocalPlayer:GetMouse()
 local UIElements = {}
@@ -328,13 +330,15 @@ local function updatePositions()
 			screenPos = screenOrErr
 
 			-- getfullname is a bitch and is gonna make me kill myself
-			local isVisible = not (screenPos.X == 0 and screenPos.Y == 0) and CheckEnabled(v.text.Text)
+			local isVisible
 
 			local okName, fullname = pcall(function()
 				return v.object:GetFullName()
 			end)
-			if okName and string.find(fullname, "Workspace") then
+			if okName and string.find(fullname, "Workspace") and not (screenPos.X == 0 and screenPos.Y == 0) and CheckEnabled(v.text.Text) then
 				isVisible = true
+			else
+				isVisible = false
 			end
 
 			if isVisible and Toggles.espEnabled then
@@ -529,7 +533,7 @@ local Title = Drawing.new("Text")
 Title.ZIndex = 3
 Title.Position = Vector2.new(105, 102)
 Title.Color = Color3.fromRGB(255, 255, 255)
-Title.Text = "shitsaken // V1.15 // Ping: 67"
+Title.Text = "shitsaken // " .. versionId .. " // Ping: 67"
 
 local Background = Drawing.new("Square")
 Background.ZIndex = 1
@@ -584,7 +588,7 @@ local function UIUpdate()
 		end
 	end
 
-	Title.Text = "shitsaken // V1.15 // Ping: " .. tostring(math.floor(memory_read("double", game:FindFirstChild("Stats"):FindFirstChild("PerformanceStats"):FindFirstChild("Ping").Address + 0xC8)))
+	Title.Text = "shitsaken // " .. versionId .. " // Ping: " .. tostring(math.floor(memory_read("double", game:FindFirstChild("Stats"):FindFirstChild("PerformanceStats"):FindFirstChild("Ping").Address + 0xC8)))
 
 	local offsets = {}
 	if iskeypressed(0x01) and Drag.Position.X < Mouse.X and Mouse.X < Drag.Position.X + Drag.Size.X and Drag.Position.Y < Mouse.Y and Mouse.Y < Drag.Position.Y + Drag.Size.Y  then
