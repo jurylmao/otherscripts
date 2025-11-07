@@ -1,6 +1,4 @@
 -- script written by @acidzs on discord, modified for shitsaken
-
---> constants
 local IsDrawing = false
 
 local Grid
