@@ -230,12 +230,6 @@ local function CreateHeader(text:string, pos:Vector2)
 	AddElement(HeaderText)
 end
 
-local function RemoveObject(v)
-	v.text:Remove()
-	table.remove(TextList, table.find(TextList, v))
-	table.remove(TempObjects, table.find(TempObjects, v.Address))
-end
-
 local function CheckEnabled(text)
 	for keyword, varname in pairs(textLookup) do
 		if string.find(text, keyword) and Toggles[varname] then
@@ -271,38 +265,97 @@ local function veeronicaSpecial(object:Model)
 	return prefix .. "'s Graffiti" 
 end
 
+-- remake of this function
+local function RemoveObject(v)
+	pcall(function()
+		if v and v.text then
+			v.text:Remove()
+		end
+	end)
+
+	local idx = table.find(TextList, v)
+	if idx then
+		table.remove(TextList, idx)
+	end
+
+	if v and v.Address then
+		local tidx = table.find(TempObjects, v.Address)
+		if tidx then
+			table.remove(TempObjects, tidx)
+		end
+	end
+end
+
 local function updatePositions()
-	for _, v in TextList do
-		local pos
-		local isVisible
-		if v.object then
-			local objPos = v.object.Position or nil
-			if objPos then
-				pos = WorldToScreen(objPos)
-				isVisible = not (pos.X == 0 and pos.Y == 0) and CheckEnabled(v.text.Text)
-				
-				if string.find(v.object:GetFullName(), "Workspace") then
-					isVisible = true
-				else
-					isVisible = false
-				end
-				
-				if isVisible and Toggles.espEnabled then
+	for i = #TextList, 1, -1 do
+		local v = TextList[i]
+		if not v then
+			table.remove(TextList, i)
+			continue
+		end
+
+		if not v.text then
+			table.remove(TextList, i)
+			continue
+		end
+
+		local ok, result = pcall(function()
+			if not v.object or not v.object.Parent then
+				return nil, "remove"
+			end
+
+			-- SAFELY get position
+			local objPos
+			local gotPos, posOrErr = pcall(function()
+				return v.object.Position
+			end)
+
+			if not gotPos or not posOrErr then
+				return nil, "no_pos"
+			end
+
+			objPos = posOrErr
+
+			local screenPos
+			local gotScreen, screenOrErr = pcall(function()
+				return WorldToScreen(objPos)
+			end)
+
+			if not gotScreen then
+				return nil, "screen_fail"
+			end
+
+			screenPos = screenOrErr
+
+			-- getfullname is a bitch and is gonna make me kill myself
+			local isVisible = not (screenPos.X == 0 and screenPos.Y == 0) and CheckEnabled(v.text.Text)
+
+			local okName, fullname = pcall(function()
+				return v.object:GetFullName()
+			end)
+			if okName and string.find(fullname, "Workspace") then
+				isVisible = true
+			end
+
+			if isVisible and Toggles.espEnabled then
+				-- this was fine probably but im still gonna do this
+				pcall(function()
 					v.text.Visible = true
-					v.text.Position = pos
-				else
+					v.text.Position = screenPos
+				end)
+			else
+				pcall(function()
 					v.text.Visible = false
-				end
-				
+				end)
 			end
 			
-			if v.object and v.object.Name == "Main" and game.Workspace.Map:FindFirstChild("Ingame") and game.Workspace.Map.Ingame:FindFirstChild("Map") then
+			if v.model and v.object and v.object.Name == "Main" and game.Workspace.Map and game.Workspace.Map:FindFirstChild("Ingame") and game.Workspace.Map.Ingame:FindFirstChild("Map") then
 				local value = 0
-				local ok, val = pcall(function()
+				local okProg, progVal = pcall(function()
 					local prog = v.model:FindFirstChild("Progress")
 					return prog and prog.Value or 0
 				end)
-				if ok then value = val end
+				if okProg then value = progVal end
 
 				local Progress = 0
 				if value == 26 then
@@ -313,11 +366,34 @@ local function updatePositions()
 					Progress = 3
 				elseif value == 100 then
 					Progress = 4
-					v.text.Color = Color3.fromHex("764a4a")
+					pcall(function() v.text.Color = Color3.fromHex("764a4a") end)
 				end
-				v.text.Text = "Generator (" .. tostring(Progress) .. "/4)"
+				pcall(function()
+					v.text.Text = "Generator (" .. tostring(Progress) .. "/4)"
+				end)
+			end
+
+			return true, "ok"
+		end)
+
+		if not ok or result == "remove" or result == nil then
+			-- cleanup and remove entry
+			pcall(function()
+				if v and v.text then
+					v.text:Remove()
+				end
+			end)
+			table.remove(TextList, i)
+			if v and v.Address then
+				for j = #TempObjects, 1, -1 do
+					if TempObjects[j] == v.Address then
+						table.remove(TempObjects, j)
+					end
+				end
 			end
 		end
+
+		continue
 	end
 end
 
@@ -453,7 +529,7 @@ local Title = Drawing.new("Text")
 Title.ZIndex = 3
 Title.Position = Vector2.new(105, 102)
 Title.Color = Color3.fromRGB(255, 255, 255)
-Title.Text = "shitsaken // V1.1 // Ping: 67"
+Title.Text = "shitsaken // V1.15 // Ping: 67"
 
 local Background = Drawing.new("Square")
 Background.ZIndex = 1
@@ -508,7 +584,7 @@ local function UIUpdate()
 		end
 	end
 
-	Title.Text = "shitsaken // V1.1 // Ping: " .. tostring(math.floor(memory_read("double", game:FindFirstChild("Stats"):FindFirstChild("PerformanceStats"):FindFirstChild("Ping").Address + 0xC8)))
+	Title.Text = "shitsaken // V1.15 // Ping: " .. tostring(math.floor(memory_read("double", game:FindFirstChild("Stats"):FindFirstChild("PerformanceStats"):FindFirstChild("Ping").Address + 0xC8)))
 
 	local offsets = {}
 	if iskeypressed(0x01) and Drag.Position.X < Mouse.X and Mouse.X < Drag.Position.X + Drag.Size.X and Drag.Position.Y < Mouse.Y and Mouse.Y < Drag.Position.Y + Drag.Size.Y  then
