@@ -1,10 +1,9 @@
 -- script written by @acidzs on discord, modified for shitsaken
 
 --> constants
-_G.IsDrawing = false
+local IsDrawing = false
 
 local Grid
-
 
 local function parse_grid()
 	local cells = {}
@@ -444,11 +443,11 @@ end
 
 local function main(PuzzleUI)
 	Grid = PuzzleUI
-	if _G.IsDrawing then
+	if IsDrawing then
 		return
 	end
 
-	_G.IsDrawing = true
+	IsDrawing = true
 	local cells, circles, gridSize = parse_grid()
 
 	local endpointsMap = {}
@@ -466,5 +465,5 @@ local function main(PuzzleUI)
 	end
 
 	task.wait(.67)
-	_G.IsDrawing = false
+	IsDrawing = false
 end
