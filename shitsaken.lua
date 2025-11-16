@@ -2,7 +2,7 @@
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.21"
+local versionId = "v1.3"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -36,7 +36,8 @@ local Toggles = {
 	eventItem = true,
 	staminaOnMouse = false,
 	veeronicaSpray = true,
-	autoGen = false
+	autoGen = false,
+	oneXFourZombie = true
 }
 
 local textLookup = {
@@ -52,7 +53,8 @@ local textLookup = {
 	Dispenser = "buildermanDispenser",
 	Shadow = "johndoeDigitalFootprint",
 	Candy = "eventItem",
-	Graffiti = "veeronicaSpray"
+	Graffiti = "veeronicaSpray",
+	Zombie = "oneXFourZombie"
 }
 
 local ESPObjects = {
@@ -166,9 +168,354 @@ local ESPObjects = {
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Veeronica"
 	},
+	
+	["1x1x1x1Zombie"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "1x4 Zombie",
+		Color = Color3.fromHex("046000"),
+	},
 }
 
 print("shitsaken " .. versionId .. " loaded")
+
+-- offset stuff?? idrk
+
+local function get_offsets()
+	local t = {}
+	local ok, res = pcall(function()
+		return game:HttpGet("https://offsets.ntgetwritewatch.workers.dev/offsets.json")
+	end)
+	if not ok or not res then return t end
+	for k, v in res:gmatch('"([^"]-)"%s*:%s*"([^"]-)"') do
+		t[k] = v
+	end
+	return t
+end
+
+local memoryOffsets = {
+	Ping = get_offsets()["Ping"],
+	Text = get_offsets()["TextLabelText"]
+}
+
+
+-- start of jurysNotify
+
+local notify = {}
+local activeNotifications = {}
+local currID = 0
+
+local function wrapText(text, limit)
+	local result = ""
+	local lineLength = 0
+	local lastSpace = 0
+	for i = 1, #text do
+		local char = text:sub(i, i)
+		result = result .. char
+		lineLength = lineLength + 1
+		if char == " " then
+			lastSpace = #result
+		end
+		if lineLength >= limit then
+			if lastSpace > 0 then
+				result = result:sub(1, lastSpace - 1) .. "\n" .. result:sub(lastSpace + 1)
+				lineLength = #result - lastSpace
+				lastSpace = 0
+			else
+				result = result .. "\n"
+				lineLength = 0
+			end
+		end
+	end
+	return result
+end
+
+local function addNotification(elements, id, duration, notificationType)
+	local notifMain = elements[3]
+	local offsets = {}
+
+	for _, element in ipairs(elements) do
+		offsets[element] = element.Position - notifMain.Position
+	end
+
+	local data = {
+		ID = id,
+		Elements = elements,
+		Offsets = offsets,
+		NotifMain = notifMain,
+		Initialized = false,
+		Duration = duration,
+		Initializing = false,
+		notificationType = notificationType
+	}
+
+	table.insert(activeNotifications, data)
+end
+
+local function updateRelativePosition(data, pos)
+	for _, element in ipairs(data.Elements) do
+		local offset = data.Offsets[element]
+		element.Position = pos + offset
+	end
+end
+
+
+function notify.CreateNotification(notificationType:string , titleContent:string, textContent:string, duration:number, zIndex:number ,titleColor:Color3, textContentColor:Color3, barColor:Color3, backgroundColor:Color3, lineColor:Color3, progressBarColor:Color3) 
+
+	local processedText = wrapText(textContent, 35)
+	if zIndex == nil then
+		zIndex = 67
+	end
+	local xPos = 500
+	local yPos = 500
+
+	if notificationType == "default" then
+		local ColorBar = Drawing.new("Square")
+		ColorBar.ZIndex = zIndex
+		ColorBar.Size = Vector2.new(5, 60)
+		ColorBar.Position = Vector2.new(xPos - 5, yPos)
+		ColorBar.Color = barColor or Color3.fromRGB(255, 255, 255)
+		ColorBar.Filled = true
+
+		local Title = Drawing.new("Text")
+		Title.ZIndex = zIndex + 1
+		Title.Position = Vector2.new(xPos + 5, yPos + 2)
+		Title.Color = titleColor or Color3.fromRGB(255, 255, 255)
+		Title.Text = titleContent or "Title"
+		Title.Outline = false
+
+		local NotifMain = Drawing.new("Square")
+		NotifMain.ZIndex = zIndex
+		NotifMain.Size = Vector2.new(200, 60)
+		NotifMain.Position = Vector2.new(xPos, yPos)
+		NotifMain.Color = backgroundColor or Color3.fromRGB(30, 30, 30)
+		NotifMain.Filled = true
+
+		local BorderLine1 = Drawing.new("Square")
+		BorderLine1.ZIndex = zIndex + 1
+		BorderLine1.Size = Vector2.new(190, 2)
+		BorderLine1.Position = Vector2.new(xPos + 5, yPos + 20)
+		BorderLine1.Color = barColor or Color3.fromRGB(255, 255, 255)
+		BorderLine1.Filled = true
+
+		local Text = Drawing.new("Text")
+		Text.ZIndex = zIndex + 1
+		Text.Position = Vector2.new(xPos + 5, yPos + 25)
+		Text.Color = textContentColor or Color3.fromRGB(255, 255, 255)
+		Text.Text = processedText or "hi"
+		Text.Outline = false
+
+		local ProgressBarTop = Drawing.new("Square")
+		ProgressBarTop.ZIndex = zIndex + 2
+		ProgressBarTop.Size = Vector2.new(190, 2)
+		ProgressBarTop.Position = Vector2.new(xPos + 5, yPos + 55)
+		ProgressBarTop.Color = progressBarColor or Color3.fromRGB(255, 255, 255)
+		ProgressBarTop.Filled = true
+
+		local ProgressBarBottom = Drawing.new("Square")
+		ProgressBarBottom.ZIndex = zIndex + 1
+		ProgressBarBottom.Size = Vector2.new(190, 2)
+		ProgressBarBottom.Position = Vector2.new(xPos + 5, yPos + 55)
+		ProgressBarBottom.Color = progressBarColor or Color3.fromRGB(255, 255, 255)
+		ProgressBarBottom.Filled = true
+		ProgressBarBottom.Transparency = 0.5
+
+		addNotification({ColorBar, Title, NotifMain, BorderLine1, Text, ProgressBarTop, ProgressBarBottom}, currID, duration, notificationType)
+	end
+
+	if notificationType == "outline" then
+		local ColorBar = Drawing.new("Square")
+		ColorBar.Size = Vector2.new(204, 64)
+		ColorBar.Position = Vector2.new(xPos - 2, yPos - 2)
+		ColorBar.Color = barColor or Color3.fromRGB(255, 255, 255)
+		ColorBar.Filled = true
+
+		local Title = Drawing.new("Text")
+		Title.ZIndex = zIndex + 1
+		Title.Position = Vector2.new(xPos + 5, yPos + 2)
+		Title.Color = titleColor or Color3.fromRGB(255, 255, 255)
+		Title.Text = titleContent or "Title"
+		Title.Outline = false
+
+		local NotifMain = Drawing.new("Square")
+		NotifMain.ZIndex = zIndex
+		NotifMain.Size = Vector2.new(200, 60)
+		NotifMain.Position = Vector2.new(xPos, yPos)
+		NotifMain.Color = backgroundColor or Color3.fromRGB(30, 30, 30)
+		NotifMain.Filled = true
+
+		local BorderLine1 = Drawing.new("Square")
+		BorderLine1.ZIndex = zIndex + 1
+		BorderLine1.Size = Vector2.new(190, 2)
+		BorderLine1.Position = Vector2.new(xPos + 5, yPos + 20)
+		BorderLine1.Color = barColor or Color3.fromRGB(255, 255, 255)
+		BorderLine1.Filled = true
+
+		local Text = Drawing.new("Text")
+		Text.ZIndex = zIndex + 1
+		Text.Position = Vector2.new(xPos + 5, yPos + 25)
+		Text.Color = textContentColor or Color3.fromRGB(255, 255, 255)
+		Text.Text = processedText or "hi"
+		Text.Outline = false
+
+		local ProgressBarTop = Drawing.new("Square")
+		ProgressBarTop.ZIndex = zIndex + 2
+		ProgressBarTop.Size = Vector2.new(190, 2)
+		ProgressBarTop.Position = Vector2.new(xPos + 5, yPos + 55)
+		ProgressBarTop.Color = progressBarColor or Color3.fromRGB(255, 255, 255)
+		ProgressBarTop.Filled = true
+
+		local ProgressBarBottom = Drawing.new("Square")
+		ProgressBarBottom.ZIndex = zIndex + 1
+		ProgressBarBottom.Size = Vector2.new(190, 2)
+		ProgressBarBottom.Position = Vector2.new(xPos + 5, yPos + 55)
+		ProgressBarBottom.Color = progressBarColor or Color3.fromRGB(255, 255, 255)
+		ProgressBarBottom.Filled = true
+		ProgressBarBottom.Transparency = 0.5
+
+		addNotification({ColorBar, Title, NotifMain, BorderLine1, Text, ProgressBarTop, ProgressBarBottom}, currID, duration, notificationType)
+	end
+
+	if notificationType == "roundedOutline" then
+
+		local Outline = Drawing.new("Square")
+		Outline.Size = Vector2.new(208, 64)
+		Outline.Position = Vector2.new(xPos - 4, yPos - 2)
+		Outline.Color = barColor or Color3.fromRGB(255, 255, 255)
+		Outline.Filled = true
+		Outline.ZIndex = zIndex
+
+		local Title = Drawing.new("Text")
+		Title.Position = Vector2.new(xPos + 5, yPos + 5)
+		Title.Color = Color3.fromRGB(255, 255, 255)
+		Title.Text = titleContent or "Title"
+		Title.Outline = false
+		Title.ZIndex = zIndex + 2
+
+		local Background = Drawing.new("Square")
+		Background.Size = Vector2.new(204, 60)
+		Background.Position = Vector2.new(xPos - 2, yPos)
+		Background.Color = backgroundColor or Color3.fromRGB(30, 30, 30)
+		Background.Filled = true
+		Background.ZIndex = zIndex + 1
+
+		local BorderLine1 = Drawing.new("Square")
+		BorderLine1.Size = Vector2.new(190, 2)
+		BorderLine1.Position = Vector2.new(xPos + 5, yPos + 20)
+		BorderLine1.Color = lineColor or Color3.fromRGB(255, 255, 255)
+		BorderLine1.Filled = true
+		BorderLine1.ZIndex = zIndex + 2
+
+		local Text = Drawing.new("Text")
+		Text.Position = Vector2.new(xPos + 5, yPos + 25)
+		Text.Color = textContentColor or Color3.fromRGB(255, 255, 255)
+		Text.Text = textContent or "Text"
+		Text.Outline = false
+		Text.ZIndex = zIndex + 2
+
+		local ProgressBarTop = Drawing.new("Square")
+		ProgressBarTop.Size = Vector2.new(95, 2)
+		ProgressBarTop.Position = Vector2.new(xPos + 5, yPos + 55)
+		ProgressBarTop.Color = progressBarColor or Color3.new(255, 255, 255)
+		ProgressBarTop.Filled = true
+		ProgressBarTop.ZIndex = zIndex + 3
+
+		local ProgressBarBottom = Drawing.new("Square")
+		ProgressBarBottom.Size = Vector2.new(190, 2)
+		ProgressBarBottom.Transparency = 0.5
+		ProgressBarBottom.Position = Vector2.new(xPos + 5, yPos + 55)
+		ProgressBarBottom.Color = progressBarColor or Color3.new(255, 255, 255)
+		ProgressBarBottom.Filled = true
+		ProgressBarBottom.ZIndex = zIndex + 2
+
+		local OutlineCircleTopLeft = Drawing.new("Circle")
+		OutlineCircleTopLeft.Position = Vector2.new(xPos, yPos)
+		OutlineCircleTopLeft.Color = barColor or Color3.fromRGB(255, 255, 255)
+		OutlineCircleTopLeft.Radius = 4
+		OutlineCircleTopLeft.NumSides = 24
+		OutlineCircleTopLeft.Filled = true
+		OutlineCircleTopLeft.ZIndex = zIndex
+
+		local OutlineCircleTopRight = Drawing.new("Circle")
+		OutlineCircleTopRight.Position = Vector2.new(xPos + 200, yPos)
+		OutlineCircleTopRight.Color = barColor or Color3.fromRGB(255, 255, 255)
+		OutlineCircleTopRight.Radius = 4
+		OutlineCircleTopRight.NumSides = 24
+		OutlineCircleTopRight.Filled = true
+		OutlineCircleTopRight.ZIndex = zIndex
+
+		local OutlineCircleBottomLeft = Drawing.new("Circle")
+		OutlineCircleBottomLeft.Position = Vector2.new(xPos, yPos + 60)
+		OutlineCircleBottomLeft.Color = barColor or Color3.fromRGB(255, 255, 255)
+		OutlineCircleBottomLeft.Radius = 4
+		OutlineCircleBottomLeft.NumSides = 24
+		OutlineCircleBottomLeft.Filled = true
+		OutlineCircleBottomLeft.ZIndex = zIndex
+
+		local OutlineCircleBottomRight = Drawing.new("Circle")
+		OutlineCircleBottomRight.Position = Vector2.new(xPos + 200, yPos + 60)
+		OutlineCircleBottomRight.Color = barColor or Color3.fromRGB(255, 255, 255)
+		OutlineCircleBottomRight.Radius = 4
+		OutlineCircleBottomRight.NumSides = 24
+		OutlineCircleBottomRight.Filled = true
+		OutlineCircleBottomRight.ZIndex = zIndex
+
+		local OutlineTop = Drawing.new("Square")
+		OutlineTop.Size = Vector2.new(204, 68)
+		OutlineTop.Position = Vector2.new(xPos - 2, yPos - 4)
+		OutlineTop.Color = barColor or Color3.fromRGB(255, 255, 255)
+		OutlineTop.Filled = true
+		OutlineTop.ZIndex = zIndex
+
+		local BackgroundCircleTopLeft = Drawing.new("Circle")
+		BackgroundCircleTopLeft.Position = Vector2.new(xPos + 2, yPos + 2)
+		BackgroundCircleTopLeft.Color = backgroundColor or Color3.fromRGB(0, 0, 0)
+		BackgroundCircleTopLeft.Radius = 4
+		BackgroundCircleTopLeft.NumSides = 24
+		BackgroundCircleTopLeft.Filled = true
+		BackgroundCircleTopLeft.ZIndex = zIndex + 1
+
+		local BackgroundCircleTopRight = Drawing.new("Circle")
+		BackgroundCircleTopRight.Position = Vector2.new(xPos + 198, yPos + 2)
+		BackgroundCircleTopRight.Color = backgroundColor or Color3.fromRGB(0, 0, 0)
+		BackgroundCircleTopRight.Radius = 4
+		BackgroundCircleTopRight.NumSides = 24
+		BackgroundCircleTopRight.Filled = true
+		BackgroundCircleTopRight.ZIndex = zIndex + 1
+
+		local BackgroundCircleBottomLeft = Drawing.new("Circle")
+		BackgroundCircleBottomLeft.Position = Vector2.new(xPos + 2, yPos + 58)
+		BackgroundCircleBottomLeft.Color = backgroundColor or Color3.fromRGB(0, 0, 0)
+		BackgroundCircleBottomLeft.Radius = 4
+		BackgroundCircleBottomLeft.NumSides = 24
+		BackgroundCircleBottomLeft.Filled = true
+		BackgroundCircleBottomLeft.ZIndex = zIndex + 1
+
+		local BackgroundCircleBottomRight = Drawing.new("Circle")
+		BackgroundCircleBottomRight.Position = Vector2.new(xPos + 198, yPos + 58)
+		BackgroundCircleBottomRight.Color = backgroundColor or Color3.fromRGB(0, 0, 0)
+		BackgroundCircleBottomRight.Radius = 4
+		BackgroundCircleBottomRight.NumSides = 24
+		BackgroundCircleBottomRight.Filled = true
+		BackgroundCircleBottomRight.ZIndex = zIndex + 1
+
+		local BackgroundTop = Drawing.new("Square")
+		BackgroundTop.Size = Vector2.new(200, 64)
+		BackgroundTop.Position = Vector2.new(xPos, yPos - 2)
+		BackgroundTop.Color = backgroundColor or Color3.fromRGB(0, 0, 0)
+		BackgroundTop.Filled = true
+		BackgroundTop.ZIndex = zIndex + 1
+
+		addNotification({Outline, Title, Background, BorderLine1, Text, ProgressBarTop, ProgressBarBottom, OutlineTop, OutlineCircleTopLeft, OutlineCircleTopRight, OutlineCircleBottomLeft, OutlineCircleBottomRight, BackgroundCircleTopLeft, BackgroundCircleTopRight, BackgroundCircleBottomLeft, BackgroundCircleBottomRight, BackgroundTop, OutlineTop}, currID, duration, notificationType)
+
+	end
+
+	currID = currID + 1
+
+end
+
+-- end of jurysNotify
+
 
 -- acidzs autogen
 
@@ -605,7 +952,7 @@ local function draw(cells, solutions)
 			end)
 			
 			if not s then
-				notify.CreateNotification("shitsaken", "Auto Generator could not solve this puzzle. Please do it manually.", 5, 10)
+				notify.CreateNotification("roundedOutline" , "shitsaken", "Auto Generator could not solve this puzzle. Please do it manually.", 5, 10)
 			end
 			
 		end
@@ -642,131 +989,6 @@ local function main()
 end
 
 -- end of acidzs autogen
-
--- start of jurysNotify
-
-local notify = {}
-local activeNotifications = {}
-local currID = 0
-
-local function wrapText(text, limit)
-	local result = ""
-	local lineLength = 0
-	local lastSpace = 0
-	for i = 1, #text do
-		local char = text:sub(i, i)
-		result = result .. char
-		lineLength = lineLength + 1
-		if char == " " then
-			lastSpace = #result
-		end
-		if lineLength >= limit then
-			if lastSpace > 0 then
-				result = result:sub(1, lastSpace - 1) .. "\n" .. result:sub(lastSpace + 1)
-				lineLength = #result - lastSpace
-				lastSpace = 0
-			else
-				result = result .. "\n"
-				lineLength = 0
-			end
-		end
-	end
-	return result
-end
-
-local function AddNotification(elements, id, duration)
-	local notifMain = elements[3]
-	local offsets = {}
-
-	for _, element in ipairs(elements) do
-		offsets[element] = element.Position - notifMain.Position
-	end
-
-	local data = {
-		ID = id,
-		Elements = elements,
-		Offsets = offsets,
-		NotifMain = notifMain,
-		Initialized = false,
-		Duration = duration,
-		Initializing = false
-	}
-
-	table.insert(activeNotifications, data)
-end
-
-local function UpdateRelativePosition(data, pos)
-	for _, element in ipairs(data.Elements) do
-		local offset = data.Offsets[element]
-		element.Position = pos + offset
-	end
-end
-
-
-function notify.CreateNotification(titleContent:string, textContent:string, duration:number, zIndex:number ,titleColor:Color3, textContentColor:Color3, barColor:Color3, backgroundColor:Color3, lineColor:Color3, progressBarColor:Color3) 
-
-	local processedText = wrapText(textContent, 35)
-	if zIndex == nil then
-		zIndex = 67
-	end
-	local xPos = -100
-	local yPos = -100
-
-	local ColorBar = Drawing.new("Square")
-	ColorBar.ZIndex = zIndex
-	ColorBar.Size = Vector2.new(5, 60)
-	ColorBar.Position = Vector2.new(xPos - 5, yPos)
-	ColorBar.Color = barColor or Color3.fromRGB(255, 255, 255)
-	ColorBar.Filled = true
-
-	local Title = Drawing.new("Text")
-	Title.ZIndex = zIndex + 1
-	Title.Position = Vector2.new(xPos + 5, yPos + 2)
-	Title.Color = titleColor or Color3.fromRGB(255, 255, 255)
-	Title.Text = titleContent or "Title"
-	Title.Outline = false
-
-	local NotifMain = Drawing.new("Square")
-	NotifMain.ZIndex = zIndex
-	NotifMain.Size = Vector2.new(200, 60)
-	NotifMain.Position = Vector2.new(xPos, yPos)
-	NotifMain.Color = backgroundColor or Color3.fromRGB(30, 30, 30)
-	NotifMain.Filled = true
-
-	local BorderLine1 = Drawing.new("Square")
-	BorderLine1.ZIndex = zIndex + 1
-	BorderLine1.Size = Vector2.new(190, 2)
-	BorderLine1.Position = Vector2.new(xPos + 5, yPos + 20)
-	BorderLine1.Color = barColor or Color3.fromRGB(255, 255, 255)
-	BorderLine1.Filled = true
-
-	local Text = Drawing.new("Text")
-	Text.ZIndex = zIndex + 1
-	Text.Position = Vector2.new(xPos + 5, yPos + 25)
-	Text.Color = textContentColor or Color3.fromRGB(255, 255, 255)
-	Text.Text = processedText or "hi"
-	Text.Outline = false
-
-	local ProgressBarTop = Drawing.new("Square")
-	ProgressBarTop.ZIndex = zIndex + 2
-	ProgressBarTop.Size = Vector2.new(190, 2)
-	ProgressBarTop.Position = Vector2.new(xPos + 5, yPos + 55)
-	ProgressBarTop.Color = progressBarColor or Color3.fromRGB(255, 255, 255)
-	ProgressBarTop.Filled = true
-
-	local ProgressBarBottom = Drawing.new("Square")
-	ProgressBarBottom.ZIndex = zIndex + 1
-	ProgressBarBottom.Size = Vector2.new(190, 2)
-	ProgressBarBottom.Position = Vector2.new(xPos + 5, yPos + 55)
-	ProgressBarBottom.Color = progressBarColor or Color3.fromRGB(255, 255, 255)
-	ProgressBarBottom.Filled = true
-	ProgressBarBottom.Transparency = 0.5
-
-	AddNotification({ColorBar, Title, NotifMain, BorderLine1, Text, ProgressBarTop, ProgressBarBottom}, currID, duration)
-
-	currID = currID + 1
-
-end
 
 local function AddElement(element)
 	local data = {}
@@ -905,8 +1127,7 @@ local function updatePositions()
 		if not v.text then
 			table.remove(TextList, i)
 			continue
-		end
-
+		end	
 		local ok, result = pcall(function()
 			if not v.object or not v.object.Parent then
 				return nil, "remove"
@@ -978,9 +1199,11 @@ local function updatePositions()
 					Progress = 4
 					pcall(function() v.text.Color = Color3.fromHex("764a4a") end)
 				end
-				pcall(function()
-					v.text.Text = "Generator (" .. tostring(Progress) .. "/4)"
-				end)
+				if v.model.Name ~= "Fake Generator" then
+					pcall(function()
+						v.text.Text = "Generator (" .. tostring(Progress) .. "/4)"
+					end)
+				end
 			end
 
 			return true, "ok"
@@ -1101,13 +1324,13 @@ local function updateQuickUI()
 
 	if isReal then
 		local s, r = pcall(function()
-			return tostring(memory_read("string", Players.LocalPlayer.PlayerGui:FindFirstChild("TemporaryUI"):FindFirstChild("PlayerInfo"):FindFirstChild("Bars"):FindFirstChild("Stamina"):FindFirstChild("Amount").Address + 0xAE0))
+			return tostring(memory_read("string", Players.LocalPlayer.PlayerGui:FindFirstChild("TemporaryUI"):FindFirstChild("PlayerInfo"):FindFirstChild("Bars"):FindFirstChild("Stamina"):FindFirstChild("Amount").Address + memoryOffsets.Text))
 		end)
 		if s then
 			StaminaText = r
 		else
 			StaminaText = "Could not get stamina!"
-			notify.CreateNotification("shitsaken", "An error occured while getting stamina.", 5, 10)
+			notify.CreateNotification("roundedOutline" , "shitsaken", "An error occured while getting stamina.", 5, 10)
 		end
 	end
 	if StaminaText ~= nil then
@@ -1139,7 +1362,7 @@ local function updateQuickUI()
 end
 
 local Drag = Drawing.new("Square")
-Drag.Size = Vector2.new(200, 488)
+Drag.Size = Vector2.new(200, 513)
 Drag.Position = Vector2.new(100, 100)
 Drag.Color = Color3.fromRGB(30, 30, 30)
 Drag.Filled = true
@@ -1149,7 +1372,7 @@ local Title = Drawing.new("Text")
 Title.ZIndex = 3
 Title.Position = Vector2.new(Drag.Position.X + 5, Drag.Position.Y + 2)
 Title.Color = Color3.fromRGB(255, 255, 255)
-Title.Text = "shitsaken // " .. versionId .. " // Ping: 67"
+Title.Text = "shitsaken // " .. versionId
 
 local Background = Drawing.new("Square")
 Background.ZIndex = 1
@@ -1181,11 +1404,12 @@ CreateCheckbox("Builderman Dispenser ESP", Toggles.buildermanDispenser, Vector2.
 CreateCheckbox("Generator ESP", Toggles.gameGenerator, Vector2.new(105, 392), "gameGenerator")
 CreateCheckbox("Fake Generator ESP", Toggles.noliGenerator, Vector2.new(105, 420), "noliGenerator")
 CreateCheckbox("Digital Footprint ESP", Toggles.johndoeDigitalFootprint, Vector2.new(105, 448), "johndoeDigitalFootprint")
-CreateCheckbox("Event Candy ESP", Toggles.eventItem, Vector2.new(105, 476), "eventPickups")
-CreateHeader("UI Stuff", Vector2.new(105, 501))
-CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 518), "staminaOnMouse")
-CreateHeader("Automation", Vector2.new(105, 543))
-CreateCheckbox("Auto Generator (Tap Space)", Toggles.autoGen, Vector2.new(105, 560), "autoGen")
+CreateCheckbox("1x1x1x1 Zombies", Toggles.oneXFourZombie, Vector2.new(105, 476), "oneXFourZombie")
+CreateCheckbox("Event Candy ESP", Toggles.eventItem, Vector2.new(105, 504), "eventPickups")
+CreateHeader("UI Stuff", Vector2.new(105, 527))
+CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 544), "staminaOnMouse")
+CreateHeader("Automation", Vector2.new(105, 569))
+CreateCheckbox("Auto Gen is disabled for now.", Toggles.autoGen, Vector2.new(105, 586), "autoGen")
 
 local function UIUpdate()
 
@@ -1206,8 +1430,6 @@ local function UIUpdate()
 			end
 		end
 	end
-
-	Title.Text = "shitsaken // " .. versionId .. " // Ping: " .. tostring(math.floor(memory_read("double", game:FindFirstChild("Stats"):FindFirstChild("PerformanceStats"):FindFirstChild("Ping").Address + 0xC8)))
 
 	local offsets = {}
 	if iskeypressed(0x01) and Drag.Position.X < Mouse.X and Mouse.X < Drag.Position.X + Drag.Size.X and Drag.Position.Y < Mouse.Y and Mouse.Y < Drag.Position.Y + Drag.Size.Y  then
@@ -1231,6 +1453,7 @@ local function UIUpdate()
 end
 
 -- ui shit
+-- here chatgpt this is where it is not printing
 spawn(function()
 	while true do
 		UIUpdate()
@@ -1249,10 +1472,10 @@ spawn(function()
 	end
 end)
 
--- autogen
+--[[ autogen
 spawn(function()
 	while true do
-		if iskeypressed(0x20) then
+		if iskeypressed(0x20) and Toggles.autoGen == true then
 			if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI') then
 				Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
 				main()
@@ -1261,7 +1484,7 @@ spawn(function()
 		task.wait(.2)
 	end
 end)
-
+]]
 -- esp position update + reseter
 spawn(function()
 	while true do
@@ -1289,7 +1512,7 @@ spawn(function()
 		end
 end)
 
--- notif initializer
+--notif initializer
 spawn(function()
 	while true do
 		task.wait()
@@ -1297,8 +1520,8 @@ spawn(function()
 			for _, v in ipairs(activeNotifications) do
 				if v.Initialized == false and v.Initializing == false then
 					v.Initializing = true
-					local gameWindowSize = game.CoreGui.RobloxGui.SettingsClippingShield.AbsoluteSize
-					UpdateRelativePosition(v, Vector2.new(gameWindowSize.X - 200, gameWindowSize.Y - 60))
+					local gameWindowSize = game.Workspace.Camera.ViewportSize
+					updateRelativePosition(v, Vector2.new(gameWindowSize.X - 200, gameWindowSize.Y - 120))
 					v.Initialized = true
 					spawn(function()
 						local startTime = os.clock()
@@ -1323,6 +1546,7 @@ spawn(function()
 		end
 	end
 end)
+
 -- notif updates
 spawn(function()
 	while true do
@@ -1332,12 +1556,12 @@ spawn(function()
 					table.sort(activeNotifications, function(a, b)
 						return a.ID > b.ID
 					end)
-					local baseY = game.CoreGui.RobloxGui.SettingsClippingShield.AbsoluteSize.Y - 60
+					local baseY = game.Workspace.Camera.ViewportSize.Y - 70
 					for index, notif in ipairs(activeNotifications) do
-						local offsetY = (index - 1) * -63
-						local gameWindowSize = game.CoreGui.RobloxGui.SettingsClippingShield.AbsoluteSize
-						local pos = Vector2.new(gameWindowSize.X - 200, baseY + offsetY)
-						UpdateRelativePosition(notif, pos)
+						local offsetY = (index - 1) * -70
+						local gameWindowSize = game.Workspace.Camera.ViewportSize
+						local pos = Vector2.new(gameWindowSize.X - 212, baseY + offsetY)
+						updateRelativePosition(notif, pos)
 					end
 
 				end
@@ -1347,4 +1571,4 @@ spawn(function()
 	end
 end)
 
-notify.CreateNotification("shitsaken", "shitsaken " .. versionId .. " loaded successfully!", 5, 10)
+notify.CreateNotification("roundedOutline" , "shitsaken", "shitsaken " .. versionId .. " loaded successfully!", 5, 10)
