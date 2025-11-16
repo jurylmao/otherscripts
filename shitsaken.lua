@@ -2,7 +2,7 @@
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.3"
+local versionId = "v1.31"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -171,7 +171,7 @@ local ESPObjects = {
 	
 	["1x1x1x1Zombie"] = {
 		Type = "Model",
-		Root = "HumanoidRootPart",
+		Root = "Torso",
 		Text = "1x4 Zombie",
 		Color = Color3.fromHex("046000"),
 	},
