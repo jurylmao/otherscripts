@@ -2,7 +2,7 @@
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.31"
+local versionId = "v1.32"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -20,6 +20,7 @@ local dragging
 local updatesPaused = false
 local eventObjects = true
 local IsDrawing = false
+local lastNotif = 0
 
 local Toggles = {
 	taphTripmine = true,
@@ -266,8 +267,8 @@ function notify.CreateNotification(notificationType:string , titleContent:string
 	if zIndex == nil then
 		zIndex = 67
 	end
-	local xPos = 500
-	local yPos = 500
+	local xPos = -100
+	local yPos = -100
 
 	if notificationType == "default" then
 		local ColorBar = Drawing.new("Square")
@@ -1330,7 +1331,12 @@ local function updateQuickUI()
 			StaminaText = r
 		else
 			StaminaText = "Could not get stamina!"
-			notify.CreateNotification("roundedOutline" , "shitsaken", "An error occured while getting stamina.", 5, 10)
+			if Toggles.staminaOnMouse == true then
+				if os.clock() >= lastNotif + 5 then
+					notify.CreateNotification("roundedOutline" , "shitsaken", "An error occured while getting stamina.", 5, 10)
+					lastNotif = os.clock()
+				end
+			end
 		end
 	end
 	if StaminaText ~= nil then
