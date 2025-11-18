@@ -2,7 +2,7 @@
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.32"
+local versionId = "v1.33"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -1415,7 +1415,7 @@ CreateCheckbox("Event Candy ESP", Toggles.eventItem, Vector2.new(105, 504), "eve
 CreateHeader("UI Stuff", Vector2.new(105, 527))
 CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 544), "staminaOnMouse")
 CreateHeader("Automation", Vector2.new(105, 569))
-CreateCheckbox("Auto Gen is disabled for now.", Toggles.autoGen, Vector2.new(105, 586), "autoGen")
+CreateCheckbox("Auto Generator (Tap Space)", Toggles.autoGen, Vector2.new(105, 586), "autoGen")
 
 local function UIUpdate()
 
@@ -1478,7 +1478,7 @@ spawn(function()
 	end
 end)
 
---[[ autogen
+-- autogen
 spawn(function()
 	while true do
 		if iskeypressed(0x20) and Toggles.autoGen == true then
@@ -1490,7 +1490,7 @@ spawn(function()
 		task.wait(.2)
 	end
 end)
-]]
+
 -- esp position update + reseter
 spawn(function()
 	while true do
