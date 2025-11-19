@@ -2,7 +2,7 @@
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.33"
+local versionId = "v1.4"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -38,7 +38,8 @@ local Toggles = {
 	staminaOnMouse = false,
 	veeronicaSpray = true,
 	autoGen = false,
-	oneXFourZombie = true
+	oneXFourZombie = true,
+	coolkiddMinions = true,
 }
 
 local textLookup = {
@@ -55,7 +56,8 @@ local textLookup = {
 	Shadow = "johndoeDigitalFootprint",
 	Candy = "eventItem",
 	Graffiti = "veeronicaSpray",
-	Zombie = "oneXFourZombie"
+	Zombie = "oneXFourZombie",
+	C00lkidd = "coolkiddMinions"
 }
 
 local ESPObjects = {
@@ -175,6 +177,109 @@ local ESPObjects = {
 		Root = "Torso",
 		Text = "1x4 Zombie",
 		Color = Color3.fromHex("046000"),
+	},
+	-- coolkidd minions there are so fucking many of these dude holy shit
+	["PizzaDeliveryRig"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Minion1"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Minion2"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Minion3"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Minion4"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["GreenGuy"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["RedGuy"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["BlueGuy"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["PurpleGuy"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Builderman"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Elliot"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["ShedletskyCORRUPT"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["ChancecORRUPT"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Mafia1"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Mafia2"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Mafia3"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
+	},
+	["Mafia4"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "C00lkidd Minion",
+		Color = Color3.fromHex("ff0000"),
 	},
 }
 
@@ -1368,7 +1473,7 @@ local function updateQuickUI()
 end
 
 local Drag = Drawing.new("Square")
-Drag.Size = Vector2.new(200, 513)
+Drag.Size = Vector2.new(200, 543)
 Drag.Position = Vector2.new(100, 100)
 Drag.Color = Color3.fromRGB(30, 30, 30)
 Drag.Filled = true
@@ -1410,12 +1515,13 @@ CreateCheckbox("Builderman Dispenser ESP", Toggles.buildermanDispenser, Vector2.
 CreateCheckbox("Generator ESP", Toggles.gameGenerator, Vector2.new(105, 392), "gameGenerator")
 CreateCheckbox("Fake Generator ESP", Toggles.noliGenerator, Vector2.new(105, 420), "noliGenerator")
 CreateCheckbox("Digital Footprint ESP", Toggles.johndoeDigitalFootprint, Vector2.new(105, 448), "johndoeDigitalFootprint")
-CreateCheckbox("1x1x1x1 Zombies", Toggles.oneXFourZombie, Vector2.new(105, 476), "oneXFourZombie")
-CreateCheckbox("Event Candy ESP", Toggles.eventItem, Vector2.new(105, 504), "eventPickups")
-CreateHeader("UI Stuff", Vector2.new(105, 527))
-CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 544), "staminaOnMouse")
-CreateHeader("Automation", Vector2.new(105, 569))
-CreateCheckbox("Auto Generator (Tap Space)", Toggles.autoGen, Vector2.new(105, 586), "autoGen")
+CreateCheckbox("1x1x1x1 Zombies ESP", Toggles.oneXFourZombie, Vector2.new(105, 476), "oneXFourZombie")
+CreateCheckbox("C00lkidd Minions ESP", Toggles.coolkiddMinions, Vector2.new(105, 504), "coolkiddMinions")
+CreateCheckbox("Event Candy ESP", Toggles.eventItem, Vector2.new(105, 532), "eventPickups")
+CreateHeader("UI Stuff", Vector2.new(105, 555))
+CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 576), "staminaOnMouse")
+CreateHeader("Automation", Vector2.new(105, 601))
+CreateCheckbox("Auto Generator (Tap Space)", Toggles.autoGen, Vector2.new(105, 618), "autoGen")
 
 local function UIUpdate()
 
