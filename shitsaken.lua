@@ -1,8 +1,19 @@
+--[[
+
+hii dont skid my code please thank youuuu
+hii dont skid my code please thank youuuu
+hii dont skid my code please thank youuuu
+hii dont skid my code please thank youuuu
+hii dont skid my code please thank youuuu
+hii dont skid my code please thank youuuu
+
+]]
+
 -- note for versionId:
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.4"
+local versionId = "v1.5"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -22,6 +33,13 @@ local eventObjects = true
 local IsDrawing = false
 local lastNotif = 0
 
+local letters = {
+	[1] = {"W", 0x57},
+	[2] = {"A", 0x41},
+	[3] = {"S", 0x53},
+	[4] = {"D", 0x44},
+}
+
 local Toggles = {
 	taphTripmine = true,
 	taphTripwire = true,
@@ -40,6 +58,7 @@ local Toggles = {
 	autoGen = false,
 	oneXFourZombie = true,
 	coolkiddMinions = true,
+	autoQTE = true,
 }
 
 local textLookup = {
@@ -117,7 +136,7 @@ local ESPObjects = {
 		Text = "Sentry",
 		Color = Color3.fromHex("66fffc")
 	},
-	
+
 	["doothsek"] = {
 		Type = "Model",
 		Root = "Part",
@@ -155,7 +174,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ffffff"),
 		Special = "TwoTime"
 	},
-	
+
 	["Shadow"] = {
 		Type = "Part",
 		Root = "None",
@@ -163,7 +182,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("fcf805"),
 		Special = "JohnDoeTrap"
 	},
-	
+
 	["Spray"] = {
 		Type = "Model",
 		Root = "Hitbox",
@@ -171,7 +190,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Veeronica"
 	},
-	
+
 	["1x1x1x1Zombie"] = {
 		Type = "Model",
 		Root = "Torso",
@@ -301,7 +320,8 @@ end
 
 local memoryOffsets = {
 	Ping = get_offsets()["Ping"],
-	Text = get_offsets()["TextLabelText"]
+	Text = get_offsets()["TextLabelText"],
+	ElementVisible = get_offsets()["FrameVisible"]
 }
 
 
@@ -1056,11 +1076,11 @@ local function draw(cells, solutions)
 
 				x, y = targetX, targetY
 			end)
-			
+
 			if not s then
 				notify.CreateNotification("roundedOutline" , "shitsaken", "Auto Generator could not solve this puzzle. Please do it manually.", 5, 10)
 			end
-			
+
 		end
 
 		mouse1release()
@@ -1285,7 +1305,7 @@ local function updatePositions()
 					v.text.Visible = false
 				end)
 			end
-			
+
 			if v.model and v.object and v.object.Name == "Main" and game.Workspace.Map and game.Workspace.Map:FindFirstChild("Ingame") and game.Workspace.Map.Ingame:FindFirstChild("Map") then
 				local value = 0
 				local okProg, progVal = pcall(function()
@@ -1346,11 +1366,11 @@ local function addObjects(v)
 					objData.Text = twoTimeSpecial(v)
 					rootPart = v
 				end
-				
+
 				if objData.Special == "Veeronica" then
 					objData.Text = veeronicaSpecial(v)
 				end
-				
+
 				if objData.Special == "JohnDoeTrap" then
 					rootPart = v
 				end
@@ -1366,7 +1386,7 @@ local function addObjects(v)
 					espText.Color = objData.Color
 					espText.Outline = true
 					espText.Center = true
-				if rootPart ~= nil then
+					if rootPart ~= nil then
 						table.insert(TempObjects, v.Address)
 						local entry = {}
 						entry.object = rootPart
@@ -1374,9 +1394,9 @@ local function addObjects(v)
 						entry.model = v
 						entry.temporary = true
 						table.insert(TextList, entry)
-				else
-					espText:Remove()
-				end
+					else
+						espText:Remove()
+					end
 				else
 					return
 				end
@@ -1417,7 +1437,7 @@ local function updateObjects()
 			addObjects(v)
 		end
 	end
-	
+
 end
 
 local function updateQuickUI()
@@ -1473,7 +1493,7 @@ local function updateQuickUI()
 end
 
 local Drag = Drawing.new("Square")
-Drag.Size = Vector2.new(200, 543)
+Drag.Size = Vector2.new(200, 571)
 Drag.Position = Vector2.new(100, 100)
 Drag.Color = Color3.fromRGB(30, 30, 30)
 Drag.Filled = true
@@ -1518,10 +1538,11 @@ CreateCheckbox("Digital Footprint ESP", Toggles.johndoeDigitalFootprint, Vector2
 CreateCheckbox("1x1x1x1 Zombies ESP", Toggles.oneXFourZombie, Vector2.new(105, 476), "oneXFourZombie")
 CreateCheckbox("C00lkidd Minions ESP", Toggles.coolkiddMinions, Vector2.new(105, 504), "coolkiddMinions")
 CreateCheckbox("Event Candy ESP", Toggles.eventItem, Vector2.new(105, 532), "eventPickups")
-CreateHeader("UI Stuff", Vector2.new(105, 555))
+CreateHeader("UI Stuff", Vector2.new(105, 560))
 CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 576), "staminaOnMouse")
 CreateHeader("Automation", Vector2.new(105, 601))
 CreateCheckbox("Auto Generator (Tap Space)", Toggles.autoGen, Vector2.new(105, 618), "autoGen")
+CreateCheckbox("Auto Reel/Escape", Toggles.autoQTE, Vector2.new(105, 646), "autoQTE")
 
 local function UIUpdate()
 
@@ -1565,7 +1586,6 @@ local function UIUpdate()
 end
 
 -- ui shit
--- here chatgpt this is where it is not printing
 spawn(function()
 	while true do
 		UIUpdate()
@@ -1597,10 +1617,58 @@ spawn(function()
 	end
 end)
 
+-- auto reel / escape
+spawn(function()
+	while true do
+		if game.Players.LocalPlayer.PlayerGui.TemporaryUI:FindFirstChild("QTE") and Toggles.autoQTE == true then
+			local keys = {}
+			local largestKey = nil
+			local largestSize = 0
+
+			for _, v in game.Players.LocalPlayer.PlayerGui.TemporaryUI:FindFirstChild("QTE"):GetChildren() do
+				if v.Name == "PC" and v:FindFirstChild("TextLabel") then
+					table.insert(keys, v)
+				end
+			end
+
+			for _, v in ipairs(keys) do
+				local keytext = v:FindFirstChild("TextLabel").Text or ""
+				local keysize = v.AbsoluteSize.Y
+				
+				local testMemory = memory_read("byte", v.Address + memoryOffsets.ElementVisible)
+				
+				if not testMemory then
+					if os.clock() >= lastNotif + 5 then
+						notify.CreateNotification("roundedOutline" , "shitsaken", "An error occured while doing the quick time event.", 5, 10)
+						lastNotif = os.clock()
+					end
+				end
+				
+				if memory_read("byte", v.Address + memoryOffsets.ElementVisible) == 1 and keysize > largestSize then
+					largestSize = keysize
+					largestKey = v
+				end
+			end
+
+			if largestKey then
+				local keytext = largestKey:FindFirstChild("TextLabel").Text or ""
+				for _, entry in pairs(letters) do
+					local letter = entry[1]
+					if keytext == letter then
+						keypress(entry[2])
+						break 
+					end
+				end
+			end
+		end	
+		task.wait(0.05)
+	end
+end)
+
 -- esp position update + reseter
 spawn(function()
 	while true do
-		
+
 		if game.Workspace.Map.Ingame:FindFirstChild("Map") then
 			updatePositions()
 		else
@@ -1621,7 +1689,7 @@ spawn(function()
 			updatesPaused = false
 		end
 		task.wait()
-		end
+	end
 end)
 
 --notif initializer
