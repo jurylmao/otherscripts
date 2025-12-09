@@ -13,18 +13,19 @@ hii dont skid my code please thank youuuu
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.5"
+local versionId = "v1.6"
 
 -- acidzs stuff
 _G.IsDrawing = false
 local Grid
 
-local Players = game:GetService("Players")
+local Players = game:GetService("Players")	
 local Mouse = Players.LocalPlayer:GetMouse()
 local UIElements = {}
 local Buttons = {}
 local TextList = {}
 local TempObjects = {}
+local Sections = {}
 local lastupdate = 0
 local stamina
 local dragging
@@ -32,15 +33,76 @@ local updatesPaused = false
 local eventObjects = true
 local IsDrawing = false
 local lastNotif = 0
+local highestSectionZindex = 667
 
-local letters = {
+local reelLetters = { -- these tables are seperate so auto reel doesnt have to sort through a bunch of bullshit
 	[1] = {"W", 0x57},
 	[2] = {"A", 0x41},
 	[3] = {"S", 0x53},
 	[4] = {"D", 0x44},
 }
 
-local Toggles = {
+local keys = { -- ty chatgpt
+	-- top row numbers
+	{ "0", 0x30 },
+	{ "1", 0x31 },
+	{ "2", 0x32 },
+	{ "3", 0x33 },
+	{ "4", 0x34 },
+	{ "5", 0x35 },
+	{ "6", 0x36 },
+	{ "7", 0x37 },
+	{ "8", 0x38 },
+	{ "9", 0x39 },
+
+	-- letters
+	{ "A", 0x41 }, { "B", 0x42 }, { "C", 0x43 }, { "D", 0x44 },
+	{ "E", 0x45 }, { "F", 0x46 }, { "G", 0x47 }, { "H", 0x48 },
+	{ "I", 0x49 }, { "J", 0x4A }, { "K", 0x4B }, { "L", 0x4C },
+	{ "M", 0x4D }, { "N", 0x4E }, { "O", 0x4F }, { "P", 0x50 },
+	{ "Q", 0x51 }, { "R", 0x52 }, { "S", 0x53 }, { "T", 0x54 },
+	{ "U", 0x55 }, { "V", 0x56 }, { "W", 0x57 }, { "X", 0x58 },
+	{ "Y", 0x59 }, { "Z", 0x5A },
+
+	-- punctuation
+	{ ";", 0xBA }, { "=", 0xBB }, { ",", 0xBC }, { "-", 0xBD },
+	{ "period", 0xBE }, { "slash", 0xBF }, { "`", 0xC0 }, { "[", 0xDB },
+	{ "backslash", 0xDC }, { "]", 0xDD }, { "'", 0xDE },
+
+	-- space
+	{ "SPACE", 0x20 },
+
+	-- function row f1 f12
+	{ "F1", 0x70 }, { "F2", 0x71 }, { "F3", 0x72 }, { "F4", 0x73 },
+	{ "F5", 0x74 }, { "F6", 0x75 }, { "F7", 0x76 }, { "F8", 0x77 },
+	{ "F9", 0x78 }, { "F10", 0x79 }, { "F11", 0x7A }, { "F12", 0x7B },
+
+	-- modifiers
+	{ "LSHIFT", 0xA0 },
+	{ "RSHIFT", 0xA1 },
+	{ "LCTRL", 0xA2 },
+	{ "RCTRL", 0xA3 },
+
+	-- nav cluster
+	{ "INSERT", 0x2D },
+	{ "DELETE", 0x2E },
+	{ "HOME", 0x24 },
+	{ "END", 0x23 },
+	{ "PAGEUP", 0x21 },
+	{ "PAGEDOWN", 0x22 },
+
+	-- numpad
+	{ "NUMPAD0", 0x60 }, { "NUMPAD1", 0x61 }, { "NUMPAD2", 0x62 },
+	{ "NUMPAD3", 0x63 }, { "NUMPAD4", 0x64 }, { "NUMPAD5", 0x65 },
+	{ "NUMPAD6", 0x66 }, { "NUMPAD7", 0x67 }, { "NUMPAD8", 0x68 },
+	{ "NUMPAD9", 0x69 }, { "NUMPAD_MULTIPLY", 0x6A },
+	{ "NUMPAD_ADD", 0x6B }, { "NUMPAD_SEPARATOR", 0x6C },
+	{ "NUMPAD_SUBTRACT", 0x6D }, { "NUMPAD_DECIMAL", 0x6E },
+	{ "NUMPAD_DIVIDE", 0x6F },
+}
+
+
+local Config = {
 	taphTripmine = true,
 	taphTripwire = true,
 	gameGenerator = true,
@@ -58,7 +120,10 @@ local Toggles = {
 	autoGen = false,
 	oneXFourZombie = true,
 	coolkiddMinions = true,
+	-- qte
 	autoQTE = true,
+	killerReelSpeed = 0.05,
+	survivorReelSpeed = 0.10,
 }
 
 local textLookup = {
@@ -321,7 +386,8 @@ end
 local memoryOffsets = {
 	Ping = get_offsets()["Ping"],
 	Text = get_offsets()["TextLabelText"],
-	ElementVisible = get_offsets()["FrameVisible"]
+	ElementVisible = get_offsets()["FrameVisible"],
+	Value = get_offsets()["Value"]
 }
 
 
@@ -1116,38 +1182,112 @@ end
 
 -- end of acidzs autogen
 
-local function AddElement(element)
-	local data = {}
-	data.Element = element
+-- extra functions for better things yeah
+local function getPlayerDetails(player:Player)
+	if player.Character then
+		local team = player.Character.Parent
+		local class = player.Character.Name
+		local character = player.Character
+		local name = player.Name
+		return {team, class, character, name}
+	end
+	return {"None", "None", nil, "None"}
+end
+
+-- ui shit
+local function AddElement(element, section)
+	local data = {
+		Element = element,
+		Section = section,
+		ZIndex = element.ZIndex
+	}
+
+	data.Offset = element.Position - section.Position
+	table.insert(section.Elements, data)
+
 	table.insert(UIElements, data)
 end
 
-local function CreateCheckbox(text:string, var:boolean, pos:Vector2, varname:string)
+local function CreateSection(name, position, size, color)
+	local section = {
+		Name = name,
+		Position = position,
+		Size = size,
+		Color = color or Color3.fromRGB(30, 30, 30),
+		Elements = {},
+		DragOffset = Vector2.new(0, 0),
+		IsDragging = false,
+		IsOnTop = false,
+		sectionN = #Sections
+	}
+
+	section.DragArea = Drawing.new("Square")
+	section.DragArea.ZIndex = 5
+	section.DragArea.Size = size
+	section.DragArea.Position = position
+	section.DragArea.Color = section.Color
+	section.DragArea.Filled = true
+
+	section.Border = Drawing.new("Square")
+	section.Border.ZIndex = 4
+	section.Border.Size = size + Vector2.new(4, 4)
+	section.Border.Position = position - Vector2.new(2, 2)
+	section.Border.Color = Color3.fromRGB(255, 255, 255)
+	section.Border.Filled = true
+
+	section.Title = Drawing.new("Text")
+	section.Title.ZIndex = 6
+	section.Title.Position = position + Vector2.new(5, 4)
+	section.Title.Color = Color3.fromRGB(255, 255, 255)
+	section.Outline = false
+	section.Title.Text = name
+
+	section.BorderLine = Drawing.new("Square")
+	section.BorderLine.ZIndex = 6
+	section.BorderLine.Size = Vector2.new(size.X - 6, 2)
+	section.BorderLine.Position = position + Vector2.new(3, 22)
+	section.BorderLine.Color = Color3.fromRGB(255, 255, 255)
+	section.BorderLine.Filled = true
+
+	table.insert(Sections, section)
+
+	AddElement(section.Border, section)
+	AddElement(section.Title, section)
+	AddElement(section.DragArea, section)
+	AddElement(section.BorderLine, section)
+
+	return section
+end
+
+local function CreateCheckbox(text:string, var:boolean, pos:Vector2, varname, section)
+
+	local adjustedPos = section.Position + pos
+
 	local CheckboxContainerBackground = Drawing.new("Square")
-	CheckboxContainerBackground.ZIndex = 4
+	CheckboxContainerBackground.ZIndex = 9
 	CheckboxContainerBackground.Size = Vector2.new(190, 21)
-	CheckboxContainerBackground.Position = pos
+	CheckboxContainerBackground.Position = adjustedPos
 	CheckboxContainerBackground.Color = Color3.fromRGB(0, 0, 0)
 	CheckboxContainerBackground.Filled = true
 
 	local CheckboxContainerBackgroundOutline = Drawing.new("Square")
-	CheckboxContainerBackgroundOutline.ZIndex = 3
+	CheckboxContainerBackgroundOutline.ZIndex = 8
 	CheckboxContainerBackgroundOutline.Size = Vector2.new(192, 23)
-	CheckboxContainerBackgroundOutline.Position = pos - Vector2.new(1, 1)
+	CheckboxContainerBackgroundOutline.Position = adjustedPos - Vector2.new(1, 1)
 	CheckboxContainerBackgroundOutline.Color = Color3.fromRGB(255, 255, 255)
 	CheckboxContainerBackgroundOutline.Filled = true
 
 	local CheckboxBackground = Drawing.new("Square")
-	CheckboxBackground.ZIndex = 5
+	CheckboxBackground.ZIndex = 10
 	CheckboxBackground.Size = Vector2.new(15, 15)
-	CheckboxBackground.Position = pos + Vector2.new(172, 3)
+	CheckboxBackground.Position = adjustedPos + Vector2.new(172, 3)
 	CheckboxBackground.Color = Color3.fromRGB(255, 255, 255)
 	CheckboxBackground.Filled = true
 
 	local CheckboxVisible = Drawing.new("Square")
-	CheckboxVisible.ZIndex = 6
+	CheckboxVisible.ZIndex = 11
 	CheckboxVisible.Size = Vector2.new(13, 13)
-	CheckboxVisible.Position = pos + Vector2.new(173, 4)
+	CheckboxVisible.Position = adjustedPos + Vector2.new(173, 4)
 	if var == true then
 		CheckboxVisible.Color = Color3.fromRGB(0, 255, 0)
 	else
@@ -1156,57 +1296,143 @@ local function CreateCheckbox(text:string, var:boolean, pos:Vector2, varname:str
 	CheckboxVisible.Filled = true
 
 	local CheckboxText = Drawing.new("Text")
-	CheckboxText.ZIndex = 6
-	CheckboxText.Position = pos + Vector2.new(5, 3)
+	CheckboxText.ZIndex = 11
+	CheckboxText.Position = adjustedPos + Vector2.new(5, 3)
 	CheckboxText.Color = Color3.fromRGB(255, 255, 255)
 	CheckboxText.Text = text
+	CheckboxText.Outline = false
 
-	AddElement(CheckboxContainerBackground)
-	AddElement(CheckboxContainerBackgroundOutline)
-	AddElement(CheckboxBackground)
-	AddElement(CheckboxVisible)
-	AddElement(CheckboxText)
+	AddElement(CheckboxContainerBackground, section)
+	AddElement(CheckboxContainerBackgroundOutline, section)
+	AddElement(CheckboxBackground, section)
+	AddElement(CheckboxVisible, section)
+	AddElement(CheckboxText, section)
 
 	local Button = {}
 	Button.Box = CheckboxContainerBackground
 	Button.Checkbox = CheckboxVisible
 	Button.Variable = var
+	Button.Section = section
 	Button.VarName = varname
+	Button.Type = "Checkbox"
 
 	table.insert(Buttons, Button)
 end
 
-local function CreateHeader(text:string, pos:Vector2)
+local function CreateSlider(text:string, var:number, varname:string , steps:number, totalSteps:number, pos:Vector2, section)
+
+	local adjustedPos = section.Position + pos -- 105, 147
+
+	local SliderOutline = Drawing.new("Square")
+	SliderOutline.ZIndex = 10
+	SliderOutline.Size = Vector2.new(180,15)
+	SliderOutline.Position = adjustedPos + Vector2.new(5,23)
+	SliderOutline.Color = Color3.fromRGB(255,255,255)
+	SliderOutline.Filled = true
+
+	local SliderContainerBackground = Drawing.new("Square")
+	SliderContainerBackground.ZIndex = 9
+	SliderContainerBackground.Size = Vector2.new(190,44)
+	SliderContainerBackground.Position = adjustedPos
+	SliderContainerBackground.Color = Color3.fromRGB(0,0,0)
+	SliderContainerBackground.Filled = true
+
+	local SliderContainerBackgroundOutline = Drawing.new("Square")
+	SliderContainerBackgroundOutline.ZIndex = 8
+	SliderContainerBackgroundOutline.Size = Vector2.new(192,46)
+	SliderContainerBackgroundOutline.Position = adjustedPos - Vector2.new(1,1)
+	SliderContainerBackgroundOutline.Color = Color3.fromRGB(255,255,255)
+	SliderContainerBackgroundOutline.Filled = true
+
+	local SliderTitle = Drawing.new("Text")
+	SliderTitle.ZIndex = 11
+	SliderTitle.Size = Vector2.new(200,12)
+	SliderTitle.Position = adjustedPos + Vector2.new(5,3)
+	SliderTitle.Color = Color3.fromRGB(255,255,255)
+	SliderTitle.Text = text
+	SliderTitle.Outline = false
+
+	local SliderBackground = Drawing.new("Square")
+	SliderBackground.ZIndex = 11
+	SliderBackground.Size = Vector2.new(178,13)
+	SliderBackground.Position = adjustedPos + Vector2.new(6,24)
+	SliderBackground.Color = Color3.fromRGB(0,0,0)
+	SliderBackground.Filled = true
+
+	local Slider = Drawing.new("Square")
+	Slider.ZIndex = 12
+	Slider.Size = Vector2.new(176,11)
+	Slider.Position = adjustedPos + Vector2.new(7,25)
+	Slider.Color = Color3.fromRGB(255,255,255)
+	Slider.Filled = true
+
+	local SliderValue = Drawing.new("Text")
+	SliderValue.ZIndex = 11
+	SliderValue.Center = true
+	SliderValue.Size = Vector2.new(200,12)
+	SliderValue.Position = adjustedPos + Vector2.new(165,11)
+	SliderValue.Color = Color3.fromRGB(255,255,255)
+	SliderValue.Text = var
+	
+	AddElement(SliderOutline, section)
+	AddElement(SliderContainerBackground, section)
+	AddElement(SliderContainerBackgroundOutline, section)
+	AddElement(SliderTitle, section)
+	AddElement(SliderBackground, section)
+	AddElement(Slider, section)
+	AddElement(SliderValue, section)
+	
+	local Button = {}
+	Button.Box = SliderBackground
+	Button.Slider = Slider
+	Button.totalSteps = totalSteps
+	Button.varname = varname
+	Button.Section = section
+	Button.varText = SliderValue
+	Button.steps = steps or 0.05
+	Button.Type = "Slider"
+
+	table.insert(Buttons, Button)
+	
+	do -- make the slider match the current value
+		local maxVal = tonumber(totalSteps) or 1
+		if maxVal <= 0 then maxVal = 1 end
+		local fraction = math.clamp((var or 0) / maxVal, 0, 1)
+		local fullWidth = SliderBackground.Size.X - 2
+		local initialWidth = math.max(1, math.floor(fullWidth * fraction + 0.5))
+		Slider.Size = Vector2.new(initialWidth, Slider.Size.Y)
+		Slider.Position = Vector2.new(SliderBackground.Position.X + 1, Slider.Position.Y)
+		SliderValue.Text = tostring(var)
+	end
+end
+
+local function CreateHeader(text:string, pos:Vector2, section)
+
+	local adjustedPos = section.Position + pos
+
 	local HeaderText = Drawing.new("Text")
-	HeaderText.ZIndex = 6
-	HeaderText.Position = pos
+	HeaderText.ZIndex = 11
+	HeaderText.Position = adjustedPos
 	HeaderText.Color = Color3.fromRGB(255, 255, 255)
 	HeaderText.Text = text
 
-	AddElement(HeaderText)
+	AddElement(HeaderText, section)
 end
 
 local function CheckEnabled(text)
 	for keyword, varname in pairs(textLookup) do
-		if string.find(text, keyword) and Toggles[varname] then
+		if string.find(text, keyword) and Config[varname] then
 			return true
 		end
 	end
 	return false
 end
 
-local function SetEnabled(name)
-	if Toggles[name] ~= nil then
-		Toggles[name] = true
+local function SetValue(name, value)
+	if Config[name] ~= nil then
+		Config[name] = value
 	end
 end
-
-local function SetDisabled(name)
-	if Toggles[name] ~= nil then
-		Toggles[name] = false
-	end
-end
-
 
 -- special stuff
 local function twoTimeSpecial(object:Part)
@@ -1294,7 +1520,7 @@ local function updatePositions()
 				isVisible = false
 			end
 
-			if isVisible and Toggles.espEnabled then
+			if isVisible and Config.espEnabled then
 				-- this was fine probably but im still gonna do this
 				pcall(function()
 					v.text.Visible = true
@@ -1336,7 +1562,6 @@ local function updatePositions()
 		end)
 
 		if not ok or result == "remove" or result == nil then
-			-- cleanup and remove entry
 			pcall(function()
 				if v and v.text then
 					v.text:Remove()
@@ -1456,7 +1681,7 @@ local function updateQuickUI()
 			StaminaText = r
 		else
 			StaminaText = "Could not get stamina!"
-			if Toggles.staminaOnMouse == true then
+			if Config.staminaOnMouse == true then
 				if os.clock() >= lastNotif + 5 then
 					notify.CreateNotification("roundedOutline" , "shitsaken", "An error occured while getting stamina.", 5, 10)
 					lastNotif = os.clock()
@@ -1465,7 +1690,7 @@ local function updateQuickUI()
 		end
 	end
 	if StaminaText ~= nil then
-		if Toggles.staminaOnMouse == true then
+		if Config.staminaOnMouse == true then
 			if stamina ~= nil then
 				stamina.Visible = true
 				stamina.Text = StaminaText
@@ -1477,7 +1702,7 @@ local function updateQuickUI()
 				stamina.Color = Color3.fromHex("FFFFFF")
 				stamina.Outline = true
 				stamina.Center = true
-				stamina.ZIndex = 7
+				stamina.ZIndex = 677
 			end
 		else
 			if stamina ~= nil then
@@ -1491,98 +1716,182 @@ local function updateQuickUI()
 		end
 	end
 end
+-- 😔😔😔
+local function HandleSectionDrag() -- im gonna kill myself istg
+	for _, section in ipairs(Sections) do
+		if ismouse1pressed() then
+			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
 
-local Drag = Drawing.new("Square")
-Drag.Size = Vector2.new(200, 571)
-Drag.Position = Vector2.new(100, 100)
-Drag.Color = Color3.fromRGB(30, 30, 30)
-Drag.Filled = true
-Drag.ZIndex = 2
+			if mousePos.X >= section.DragArea.Position.X and 
+				mousePos.X <= section.DragArea.Position.X + section.DragArea.Size.X and
+				mousePos.Y >= section.DragArea.Position.Y and 
+				mousePos.Y <= section.DragArea.Position.Y + section.DragArea.Size.Y then
 
-local Title = Drawing.new("Text")
-Title.ZIndex = 3
-Title.Position = Vector2.new(Drag.Position.X + 5, Drag.Position.Y + 2)
-Title.Color = Color3.fromRGB(255, 255, 255)
-Title.Text = "shitsaken // " .. versionId
-
-local Background = Drawing.new("Square")
-Background.ZIndex = 1
-Background.Size = Vector2.new(Drag.Size.X + 4, Drag.Size.Y + 4)
-Background.Position = Vector2.new(Drag.Position.X - 2, Drag.Position.Y - 2)
-Background.Color = Color3.fromRGB(255, 255, 255)
-Background.Filled = true
-
-local BorderLine1 = Drawing.new("Square")
-BorderLine1.ZIndex = 3
-BorderLine1.Size = Vector2.new(Drag.Size.X - 6, 2)
-BorderLine1.Position = Vector2.new(Drag.Position.X + 3, Drag.Position.Y + 20)
-BorderLine1.Color = Color3.fromRGB(255, 255, 255)
-BorderLine1.Filled = true
-
-AddElement(Title)
-AddElement(Background)
-AddElement(BorderLine1)
-CreateHeader("ESP", Vector2.new(105, 123))
-CreateCheckbox("ESP Enabled", Toggles.espEnabled, Vector2.new(105, 140), "espEnabled")
-CreateCheckbox("Taph Tripmine ESP", Toggles.taphTripmine, Vector2.new(105, 168), "taphTripmine")
-CreateCheckbox("Taph Tripwire ESP", Toggles.taphTripwire, Vector2.new(105, 196), "taphTripwire")
-CreateCheckbox("Two Time Respawn ESP", Toggles.twoTimeRespawn, Vector2.new(105, 224), "twoTimeRespawn")
-CreateCheckbox("Veeronica Graffiti ESP", Toggles.veeronicaSpray, Vector2.new(105, 252), "veeronicaSpray")
-CreateCheckbox("Bloxy Cola ESP", Toggles.gameCola, Vector2.new(105, 280), "gameCola")
-CreateCheckbox("Medkit ESP", Toggles.gameMedkit, Vector2.new(105, 308), "gameMedkit")
-CreateCheckbox("Builderman Sentry ESP", Toggles.buildermanSentry, Vector2.new(105, 336), "buildermanSentry")
-CreateCheckbox("Builderman Dispenser ESP", Toggles.buildermanDispenser, Vector2.new(105, 364), "buildermanDispenser")
-CreateCheckbox("Generator ESP", Toggles.gameGenerator, Vector2.new(105, 392), "gameGenerator")
-CreateCheckbox("Fake Generator ESP", Toggles.noliGenerator, Vector2.new(105, 420), "noliGenerator")
-CreateCheckbox("Digital Footprint ESP", Toggles.johndoeDigitalFootprint, Vector2.new(105, 448), "johndoeDigitalFootprint")
-CreateCheckbox("1x1x1x1 Zombies ESP", Toggles.oneXFourZombie, Vector2.new(105, 476), "oneXFourZombie")
-CreateCheckbox("C00lkidd Minions ESP", Toggles.coolkiddMinions, Vector2.new(105, 504), "coolkiddMinions")
-CreateCheckbox("Event Candy ESP", Toggles.eventItem, Vector2.new(105, 532), "eventPickups")
-CreateHeader("UI Stuff", Vector2.new(105, 560))
-CreateCheckbox("Stamina on Mouse", Toggles.staminaOnMouse, Vector2.new(105, 576), "staminaOnMouse")
-CreateHeader("Automation", Vector2.new(105, 601))
-CreateCheckbox("Auto Generator (Tap Space)", Toggles.autoGen, Vector2.new(105, 618), "autoGen")
-CreateCheckbox("Auto Reel/Escape", Toggles.autoQTE, Vector2.new(105, 646), "autoQTE")
-
-local function UIUpdate()
-
-	-- button presses
-
-	if iskeypressed(0x01) and Drag.Position.X < Mouse.X and Mouse.X < Drag.Position.X + Drag.Size.X and Drag.Position.Y < Mouse.Y and Mouse.Y < Drag.Position.Y + Drag.Size.Y then
-		for i, v in ipairs(Buttons) do
-			if v.Box.Position.X < Mouse.X and Mouse.X < v.Box.Size.X + v.Box.Position.X and v.Box.Position.Y < Mouse.Y and Mouse.Y < v.Box.Position.Y + v.Box.Size.Y then
-				v.Variable = not v.Variable
-
-				if v.Variable == true then
-					v.Checkbox.Color = Color3.fromRGB(0, 255, 0)
-					SetEnabled(v.VarName)
-				else
-					v.Checkbox.Color = Color3.fromRGB(255, 0, 0)
-					SetDisabled(v.VarName)
+				if not section.IsDragging then
+					section.IsDragging = true
+					section.DragOffset = mousePos - section.Position
 				end
 			end
-		end
-	end
-
-	local offsets = {}
-	if iskeypressed(0x01) and Drag.Position.X < Mouse.X and Mouse.X < Drag.Position.X + Drag.Size.X and Drag.Position.Y < Mouse.Y and Mouse.Y < Drag.Position.Y + Drag.Size.Y  then
-		dragging = true
-
-		for _, v in ipairs(UIElements) do
-			offsets[v] = v.Element.Position - Drag.Position
+		else
+			section.IsDragging = false
 		end
 
-		local distanceX = Mouse.X - Drag.Position.X
-		local distanceY = Mouse.Y - Drag.Position.Y
-		while dragging == true do
-			Drag.Position = Vector2.new(Mouse.X - distanceX, Mouse.Y - distanceY)
-			for _, v in ipairs(UIElements) do
-				v.Element.Position = Drag.Position + offsets[v]
+		if section.IsDragging then
+			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+			local newPos = mousePos - section.DragOffset
+
+			section.Position = newPos
+
+			section.Border.Position = newPos - Vector2.new(2, 2)
+			section.Title.Position = newPos + Vector2.new(5, 2)
+			section.DragArea.Position = newPos
+			section.BorderLine.Position = newPos + Vector2.new(3, 22)
+
+			for _, elementData in ipairs(section.Elements) do
+				elementData.Element.Position = section.Position + elementData.Offset
 			end
-			dragging = iskeypressed(0x01)
+
+			if section.DragArea.ZIndex ~= highestSectionZindex then -- this is the bugged thing
+
+				for _, s2 in ipairs(Sections) do -- put non selected sections at default zindex
+					if s2 ~= section then
+						for _, element in ipairs(s2.Elements) do
+							element.Element.ZIndex = element.ZIndex + s2.sectionN*10
+						end
+						s2.DragArea.ZIndex = 5 + s2.sectionN*10
+						s2.BorderLine.ZIndex = 6 + s2.sectionN*10
+						s2.Border.ZIndex = 4 + s2.sectionN*10
+						s2.Title.ZIndex = 6 + s2.sectionN*10
+					end
+				end
+
+
+				for _, element in ipairs(section.Elements) do
+					element.Element.ZIndex = element.ZIndex + highestSectionZindex
+				end
+				section.DragArea.ZIndex = highestSectionZindex
+				section.BorderLine.ZIndex = highestSectionZindex + 2
+				section.Border.ZIndex = highestSectionZindex - 1
+				section.Title.ZIndex = highestSectionZindex + 2
+			end
+
+		end
+
+	end
+end
+
+local function HandleInteractables()
+	if ismouse1pressed() then
+		for i, button in ipairs(Buttons) do
+			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
+			
+			if mousePos.X >= button.Box.Position.X and 
+				mousePos.X <= button.Box.Position.X + button.Box.Size.X and
+				mousePos.Y >= button.Box.Position.Y and 
+				mousePos.Y <= button.Box.Position.Y + button.Box.Size.Y then
+				if button.Type == "Checkbox" then
+					button.Variable = not button.Variable
+
+					if button.Variable == true then
+						button.Checkbox.Color = Color3.fromRGB(0, 255, 0)
+						SetValue(button.VarName, true)
+					else
+						button.Checkbox.Color = Color3.fromRGB(255, 0, 0)
+						SetValue(button.VarName, false)
+					end
+
+					-- wait until not clicking anymore (this freezes some shit but wtv)
+					while ismouse1pressed() do
+						task.wait()
+					end
+				end
+				
+				if button.Type == "Slider" then
+					-- slider shit
+					while ismouse1pressed() do
+						local sliderMin = button.Box.Position.X + 1
+						local sliderMax = button.Box.Position.X + button.Box.Size.X - 1
+
+						local x = math.clamp(Mouse.X, sliderMin, sliderMax)
+
+						local fraction = 0
+						if sliderMax > sliderMin then
+							fraction = (x - sliderMin) / (sliderMax - sliderMin)
+						end
+						fraction = math.clamp(fraction, 0, 1)
+
+						local fullWidth = button.Box.Size.X - 2
+						local newWidth = math.max(1, math.floor(fullWidth * fraction + 0.5))
+						button.Slider.Size = Vector2.new(newWidth, button.Slider.Size.Y)
+
+						local maxVal = tonumber(button.totalSteps) or 1
+						local step = tonumber(button.steps) or 0.05
+						if maxVal <= 0 then maxVal = 1 end
+						if step <= 0 then step = 0.05 end
+
+						local rawVal = fraction * maxVal
+						local stepsCount = math.floor(rawVal / step + 0.5)
+						local value = math.clamp(stepsCount * step, 0, maxVal)
+
+						SetValue(button.varname, value)
+
+						if button.varText then
+							button.varText.Text = tostring(string.format("%.2f", value))
+						end
+						
+						task.wait()
+					end
+				end
+
+				
+			end
 		end
 	end
+end
 
+
+
+local visualsSection = CreateSection("shitsaken " .. versionId .. " // Visuals", Vector2.new(250, 100), Vector2.new(200, 460), Color3.fromRGB(35, 35, 35))
+local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 238), Color3.fromRGB(35, 35, 35))
+
+--[[
++17 (header -> checkbox)
++25 (checkbox -> header)
++28 (checkbox -> checkbox)
++50 (slider -> slider)
+]]
+
+-- visual section
+CreateHeader("ESP", Vector2.new(5, 25), visualsSection)
+CreateCheckbox("ESP Enabled", Config.espEnabled, Vector2.new(5, 40), "espEnabled", visualsSection)
+CreateCheckbox("Taph Tripmine ESP", Config.taphTripmine, Vector2.new(5, 68), "taphTripmine", visualsSection)
+CreateCheckbox("Taph Tripwire ESP", Config.taphTripwire, Vector2.new(5, 96), "taphTripwire", visualsSection)
+CreateCheckbox("Two Time Respawn ESP", Config.twoTimeRespawn, Vector2.new(5, 124), "twoTimeRespawn", visualsSection)
+CreateCheckbox("Veeronica Graffiti ESP", Config.veeronicaSpray, Vector2.new(5, 152), "veeronicaSpray", visualsSection)
+CreateCheckbox("Bloxy Cola ESP", Config.gameCola, Vector2.new(5, 180), "gameCola", visualsSection)
+CreateCheckbox("Medkit ESP", Config.gameMedkit, Vector2.new(5, 208), "gameMedkit", visualsSection)
+CreateCheckbox("Builderman Sentry ESP", Config.buildermanSentry, Vector2.new(5, 236), "buildermanSentry", visualsSection)
+CreateCheckbox("Builderman Dispenser ESP", Config.buildermanDispenser, Vector2.new(5, 264), "buildermanDispenser", visualsSection)
+CreateCheckbox("Generator ESP", Config.gameGenerator, Vector2.new(5, 292), "gameGenerator", visualsSection)
+CreateCheckbox("Fake Generator ESP", Config.noliGenerator, Vector2.new(5, 320), "noliGenerator", visualsSection)
+CreateCheckbox("Digital Footprint ESP", Config.johndoeDigitalFootprint, Vector2.new(5, 348), "johndoeDigitalFootprint", visualsSection)
+CreateCheckbox("1x1x1x1 Zombies ESP", Config.oneXFourZombie, Vector2.new(5, 376), "oneXFourZombie", visualsSection)
+CreateCheckbox("C00lkidd Minions ESP", Config.coolkiddMinions, Vector2.new(5, 404), "coolkiddMinions", visualsSection)
+CreateCheckbox("Event Candy ESP", Config.eventItem, Vector2.new(5, 432), "eventPickups", visualsSection)
+
+-- utilities section
+CreateHeader("Visual Tools", Vector2.new(5, 25), utiliesSection)
+CreateCheckbox("Stamina on Mouse", Config.staminaOnMouse, Vector2.new(5, 40), "staminaOnMouse", utiliesSection)
+CreateHeader("Automation", Vector2.new(5, 67), utiliesSection)
+CreateCheckbox("Auto Generator (Tap Space)", Config.autoGen, Vector2.new(5, 82), "autoGen", utiliesSection)
+CreateCheckbox("Auto Reel/Escape", Config.autoQTE, Vector2.new(5, 110), "autoQTE", utiliesSection)
+CreateSlider("Auto Reel Speed (secs)", Config.killerReelSpeed, "killerReelSpeed", 0.05, 1, Vector2.new(5, 138), utiliesSection)
+CreateSlider("Auto Escape Speed (secs)", Config.survivorReelSpeed, "survivorReelSpeed", 0.05, 1, Vector2.new(5, 188), utiliesSection)
+
+-- pointless but whatever
+local function UIUpdate()
+	HandleSectionDrag()
+	HandleInteractables()
 end
 
 -- ui shit
@@ -1607,20 +1916,38 @@ end)
 -- autogen
 spawn(function()
 	while true do
-		if iskeypressed(0x20) and Toggles.autoGen == true then
+		if iskeypressed(0x20) and Config.autoGen == true then
 			if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI') then
-				Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
-				main()
+				if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI'):FindFirstChild('Container').AbsoluteSize.X > 5 then
+					Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
+					main()
+				end
 			end
 		end
 		task.wait(.2)
 	end
 end)
 
+local guiVis = true
+spawn(function()
+	while true do
+		if iskeypressed(0x70) then
+			guiVis = not guiVis
+			for _, v in ipairs(UIElements) do
+				v.Element.Visible = guiVis
+			end
+			while iskeypressed(0x70) do
+				task.wait(0.05)
+			end
+		end
+		task.wait(0.05)
+	end
+end)
+
 -- auto reel / escape
 spawn(function()
 	while true do
-		if game.Players.LocalPlayer.PlayerGui.TemporaryUI:FindFirstChild("QTE") and Toggles.autoQTE == true then
+		if game.Players.LocalPlayer.PlayerGui.TemporaryUI:FindFirstChild("QTE") and Config.autoQTE == true then
 			local keys = {}
 			local largestKey = nil
 			local largestSize = 0
@@ -1634,16 +1961,16 @@ spawn(function()
 			for _, v in ipairs(keys) do
 				local keytext = v:FindFirstChild("TextLabel").Text or ""
 				local keysize = v.AbsoluteSize.Y
-				
+
 				local testMemory = memory_read("byte", v.Address + memoryOffsets.ElementVisible)
-				
+
 				if not testMemory then
 					if os.clock() >= lastNotif + 5 then
 						notify.CreateNotification("roundedOutline" , "shitsaken", "An error occured while doing the quick time event.", 5, 10)
 						lastNotif = os.clock()
 					end
 				end
-				
+
 				if memory_read("byte", v.Address + memoryOffsets.ElementVisible) == 1 and keysize > largestSize then
 					largestSize = keysize
 					largestKey = v
@@ -1651,19 +1978,29 @@ spawn(function()
 			end
 
 			if largestKey then
-				local keytext = largestKey:FindFirstChild("TextLabel").Text or ""
-				for _, entry in pairs(letters) do
+				local keytext = memory_read("string", largestKey:FindFirstChild("TextLabel").Address + memoryOffsets.Text) or ""
+				for _, entry in pairs(reelLetters) do
 					local letter = entry[1]
 					if keytext == letter then
 						keypress(entry[2])
+						task.wait()
+						keyrelease(entry[2])
 						break 
 					end
 				end
 			end
+			
+			if Players.LocalPlayer.Character.Parent.Name == "Killers" then
+				task.wait(Config.killerReelSpeed)
+			else
+				task.wait(Config.survivorReelSpeed)
+			end
+			
 		end	
-		task.wait(0.05)
+		task.wait()
 	end
 end)
+-- i heavily value efficiency here you can tell because this is much better definitely
 
 -- esp position update + reseter
 spawn(function()
