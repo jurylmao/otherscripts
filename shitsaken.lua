@@ -13,7 +13,7 @@ hii dont skid my code please thank youuuu
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.6"
+local versionId = "v1.61"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -34,6 +34,7 @@ local eventObjects = true
 local IsDrawing = false
 local lastNotif = 0
 local highestSectionZindex = 667
+local guiVis = true
 
 local reelLetters = { -- these tables are seperate so auto reel doesnt have to sort through a bunch of bullshit
 	[1] = {"W", 0x57},
@@ -1719,7 +1720,7 @@ end
 -- 😔😔😔
 local function HandleSectionDrag() -- im gonna kill myself istg
 	for _, section in ipairs(Sections) do
-		if ismouse1pressed() then
+		if ismouse1pressed() and guiVis then
 			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
 
 			if mousePos.X >= section.DragArea.Position.X and 
@@ -1781,7 +1782,7 @@ local function HandleSectionDrag() -- im gonna kill myself istg
 end
 
 local function HandleInteractables()
-	if ismouse1pressed() then
+	if ismouse1pressed() and guiVis then
 		for i, button in ipairs(Buttons) do
 			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
 			
@@ -1928,7 +1929,7 @@ spawn(function()
 	end
 end)
 
-local guiVis = true
+
 spawn(function()
 	while true do
 		if iskeypressed(0x70) then
