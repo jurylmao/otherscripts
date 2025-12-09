@@ -13,7 +13,7 @@ hii dont skid my code please thank youuuu
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.61"
+local versionId = "v1.7"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -117,6 +117,8 @@ local Config = {
 	espEnabled = true,
 	eventItem = true,
 	staminaOnMouse = false,
+	coloredStamina = true,
+	antiZeroStamina = true,
 	veeronicaSpray = true,
 	autoGen = false,
 	oneXFourZombie = true,
@@ -1183,18 +1185,6 @@ end
 
 -- end of acidzs autogen
 
--- extra functions for better things yeah
-local function getPlayerDetails(player:Player)
-	if player.Character then
-		local team = player.Character.Parent
-		local class = player.Character.Name
-		local character = player.Character
-		local name = player.Name
-		return {team, class, character, name}
-	end
-	return {"None", "None", nil, "None"}
-end
-
 -- ui shit
 local function AddElement(element, section)
 	local data = {
@@ -1668,7 +1658,8 @@ end
 
 local function updateQuickUI()
 	local StaminaText
-	local stamCap
+	local color = Color3.fromRGB(255, 255, 255)
+	local currentstam
 	local success, result = pcall(function()
 		return Players.LocalPlayer.PlayerGui.TemporaryUI.PlayerInfo.Bars.Stamina
 	end)
@@ -1679,7 +1670,21 @@ local function updateQuickUI()
 			return tostring(memory_read("string", Players.LocalPlayer.PlayerGui:FindFirstChild("TemporaryUI"):FindFirstChild("PlayerInfo"):FindFirstChild("Bars"):FindFirstChild("Stamina"):FindFirstChild("Amount").Address + memoryOffsets.Text))
 		end)
 		if s then
+			currentstam = tonumber(string.match(r, "%d+"))
+			if string.find(r, "/") and Config.coloredStamina then
+				if string.find(r, "/") then -- for some reason this bullshit works so
+					local totalstam = tonumber(string.match(r, "%d+", string.find(r, "/") + 1))
+					color = Color3.fromRGB(255*( 1 - currentstam / totalstam),255*(currentstam / totalstam), 60)
+					
+				end
+				
+			end
 			StaminaText = r
+			
+			if currentstam == 1 and Config.antiZeroStamina then
+				keyrelease(0xA0)
+			end
+			
 		else
 			StaminaText = "Could not get stamina!"
 			if Config.staminaOnMouse == true then
@@ -1696,6 +1701,7 @@ local function updateQuickUI()
 				stamina.Visible = true
 				stamina.Text = StaminaText
 				stamina.Position = Vector2.new(Mouse.X, Mouse.Y - 15)
+				stamina.Color = color
 			else
 				stamina = Drawing.new("Text")
 				stamina.Text = StaminaText
@@ -1720,7 +1726,7 @@ end
 -- 😔😔😔
 local function HandleSectionDrag() -- im gonna kill myself istg
 	for _, section in ipairs(Sections) do
-		if ismouse1pressed() and guiVis then
+		if ismouse1pressed() and guiVis and isrbxactive() then
 			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
 
 			if mousePos.X >= section.DragArea.Position.X and 
@@ -1782,7 +1788,7 @@ local function HandleSectionDrag() -- im gonna kill myself istg
 end
 
 local function HandleInteractables()
-	if ismouse1pressed() and guiVis then
+	if ismouse1pressed() and guiVis and isrbxactive() then
 		for i, button in ipairs(Buttons) do
 			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
 			
@@ -1853,7 +1859,7 @@ end
 
 
 local visualsSection = CreateSection("shitsaken " .. versionId .. " // Visuals", Vector2.new(250, 100), Vector2.new(200, 460), Color3.fromRGB(35, 35, 35))
-local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 238), Color3.fromRGB(35, 35, 35))
+local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 292), Color3.fromRGB(35, 35, 35))
 
 --[[
 +17 (header -> checkbox)
@@ -1883,14 +1889,16 @@ CreateCheckbox("Event Candy ESP", Config.eventItem, Vector2.new(5, 432), "eventP
 -- utilities section
 CreateHeader("Visual Tools", Vector2.new(5, 25), utiliesSection)
 CreateCheckbox("Stamina on Mouse", Config.staminaOnMouse, Vector2.new(5, 40), "staminaOnMouse", utiliesSection)
-CreateHeader("Automation", Vector2.new(5, 67), utiliesSection)
-CreateCheckbox("Auto Generator (Tap Space)", Config.autoGen, Vector2.new(5, 82), "autoGen", utiliesSection)
-CreateCheckbox("Auto Reel/Escape", Config.autoQTE, Vector2.new(5, 110), "autoQTE", utiliesSection)
-CreateSlider("Auto Reel Speed (secs)", Config.killerReelSpeed, "killerReelSpeed", 0.05, 1, Vector2.new(5, 138), utiliesSection)
-CreateSlider("Auto Escape Speed (secs)", Config.survivorReelSpeed, "survivorReelSpeed", 0.05, 1, Vector2.new(5, 188), utiliesSection)
+CreateCheckbox("Colored Stamina", Config.coloredStamina, Vector2.new(5, 68), "coloredStamina", utiliesSection)
+CreateHeader("Automation", Vector2.new(5, 93), utiliesSection)
+CreateCheckbox("Auto Generator (Tap Space)", Config.autoGen, Vector2.new(5, 108), "autoGen", utiliesSection)
+CreateCheckbox("Auto Reel/Escape", Config.autoQTE, Vector2.new(5, 136), "autoQTE", utiliesSection)
+CreateSlider("Auto Reel Speed (secs)", Config.killerReelSpeed, "killerReelSpeed", 0.05, 1, Vector2.new(5, 164), utiliesSection)
+CreateSlider("Auto Escape Speed (secs)", Config.survivorReelSpeed, "survivorReelSpeed", 0.05, 1, Vector2.new(5, 214), utiliesSection)
+CreateCheckbox("Anti Zero Stamina", Config.antiZeroStamina, Vector2.new(5, 264), "antiZeroStamina", utiliesSection)
 
 -- pointless but whatever
-local function UIUpdate()
+local function UIUpdate()	
 	HandleSectionDrag()
 	HandleInteractables()
 end
@@ -2001,7 +2009,6 @@ spawn(function()
 		task.wait()
 	end
 end)
--- i heavily value efficiency here you can tell because this is much better definitely
 
 -- esp position update + reseter
 spawn(function()
