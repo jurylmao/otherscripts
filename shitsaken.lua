@@ -13,7 +13,7 @@ hii dont skid my code please thank youuuu
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.7"
+local versionId = "v1.8"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -123,6 +123,7 @@ local Config = {
 	autoGen = false,
 	oneXFourZombie = true,
 	coolkiddMinions = true,
+	killersEnabled = true,
 	-- qte
 	autoQTE = true,
 	killerReelSpeed = 0.05,
@@ -144,7 +145,8 @@ local textLookup = {
 	Candy = "eventItem",
 	Graffiti = "veeronicaSpray",
 	Zombie = "oneXFourZombie",
-	C00lkidd = "coolkiddMinions"
+	C00lkidd = "coolkiddMinions",
+	Killer = "killersEnabled"
 }
 
 local ESPObjects = {
@@ -257,6 +259,62 @@ local ESPObjects = {
 		Text = "Graffiti",
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Veeronica"
+	},
+	
+	["Nosferatu"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "Nosferatu",
+		Color = Color3.fromHex("ecc3dc"),
+		Special = "Killer"
+	},
+	
+	["Noli"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "Noli",
+		Color = Color3.fromHex("ecc3dc"),
+		Special = "Killer"
+	},
+	
+	["1x1x1x1"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "1x1x1x1",
+		Color = Color3.fromHex("ecc3dc"),
+		Special = "Killer"
+	},
+	
+	["JohnDoe"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "John Doe",
+		Color = Color3.fromHex("ecc3dc"),
+		Special = "Killer"
+	},
+	
+	["Slasher"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "Slasher",
+		Color = Color3.fromHex("ecc3dc"),
+		Special = "Killer"
+	},
+	
+	["Sixer"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "Guest 666",
+		Color = Color3.fromHex("ff0000"),
+		Special = "Killer"
+	},
+	
+	["c00lkidd"] = {
+		Type = "Model",
+		Root = "HumanoidRootPart",
+		Text = "Killer",
+		Color = Color3.fromHex("ff0000"),
+		Special = "Killer"
 	},
 
 	["1x1x1x1Zombie"] = {
@@ -1438,144 +1496,10 @@ local function veeronicaSpecial(object:Model)
 	return prefix .. "'s Graffiti" 
 end
 
--- remake of this function
-local function RemoveObject(v)
-	pcall(function()
-		if v and v.text then
-			v.text:Remove()
-		end
-	end)
-
-	local idx = table.find(TextList, v)
-	if idx then
-		table.remove(TextList, idx)
-	end
-
-	if v and v.Address then
-		local tidx = table.find(TempObjects, v.Address)
-		if tidx then
-			table.remove(TempObjects, tidx)
-		end
-	end
-end
-
-local function updatePositions()
-	for i = #TextList, 1, -1 do
-		local v = TextList[i]
-		if not v then
-			table.remove(TextList, i)
-			continue
-		end
-
-		if not v.text then
-			table.remove(TextList, i)
-			continue
-		end	
-		local ok, result = pcall(function()
-			if not v.object or not v.object.Parent then
-				return nil, "remove"
-			end
-
-			-- SAFELY get position
-			local objPos
-			local gotPos, posOrErr = pcall(function()
-				return v.object.Position
-			end)
-
-			if not gotPos or not posOrErr then
-				return nil, "no_pos"
-			end
-
-			objPos = posOrErr
-
-			local screenPos
-			local gotScreen, screenOrErr = pcall(function()
-				return WorldToScreen(objPos)
-			end)
-
-			if not gotScreen then
-				return nil, "screen_fail"
-			end
-
-			screenPos = screenOrErr
-
-			-- getfullname is a bitch and is gonna make me kill myself
-			local isVisible
-
-			local okName, fullname = pcall(function()
-				return v.object:GetFullName()
-			end)
-			if okName and string.find(fullname, "Workspace") and not (screenPos.X == 0 and screenPos.Y == 0) and CheckEnabled(v.text.Text) then
-				isVisible = true
-			else
-				isVisible = false
-			end
-
-			if isVisible and Config.espEnabled then
-				-- this was fine probably but im still gonna do this
-				pcall(function()
-					v.text.Visible = true
-					v.text.Position = screenPos
-				end)
-			else
-				pcall(function()
-					v.text.Visible = false
-				end)
-			end
-
-			if v.model and v.object and v.object.Name == "Main" and game.Workspace.Map and game.Workspace.Map:FindFirstChild("Ingame") and game.Workspace.Map.Ingame:FindFirstChild("Map") then
-				local value = 0
-				local okProg, progVal = pcall(function()
-					local prog = v.model:FindFirstChild("Progress")
-					return prog and prog.Value or 0
-				end)
-				if okProg then value = progVal end
-
-				local Progress = 0
-				if value == 26 then
-					Progress = 1
-				elseif value == 52 then
-					Progress = 2
-				elseif value == 78 then
-					Progress = 3
-				elseif value == 100 then
-					Progress = 4
-					pcall(function() v.text.Color = Color3.fromHex("764a4a") end)
-				end
-				if v.model.Name ~= "Fake Generator" then
-					pcall(function()
-						v.text.Text = "Generator (" .. tostring(Progress) .. "/4)"
-					end)
-				end
-			end
-
-			return true, "ok"
-		end)
-
-		if not ok or result == "remove" or result == nil then
-			pcall(function()
-				if v and v.text then
-					v.text:Remove()
-				end
-			end)
-			table.remove(TextList, i)
-			if v and v.Address then
-				for j = #TempObjects, 1, -1 do
-					if TempObjects[j] == v.Address then
-						table.remove(TempObjects, j)
-					end
-				end
-			end
-		end
-
-		continue
-	end
-end
-
-
 local function addObjects(v)
 	for objName, objData in pairs(ESPObjects) do
 		if string.find(v.Name, objName) and v:IsA(objData.Type) and not table.find(TempObjects, v.Address) and game.Workspace.Map.Ingame:FindFirstChild("Map") then
+			local objType
 			local rootPart = v:FindFirstChild(objData.Root) or nil
 			if objData.Root == "None" or rootPart then
 				if objData.Special == "TwoTime" then
@@ -1590,8 +1514,18 @@ local function addObjects(v)
 				if objData.Special == "JohnDoeTrap" then
 					rootPart = v
 				end
-				if rootPart ~= nil then
-					local espText = Drawing.new("Text")
+
+				if objData.Special == "Killer" then
+					objType = "Killer"
+				else
+					objType = "Object"
+				end
+
+				local objs
+				local espText
+
+				if objType == "Object" then
+					espText = Drawing.new("Text")
 					espText.Text = objData.Text
 					if rootPart ~= nil then
 						espText.Position = WorldToScreen(rootPart.Position)
@@ -1602,22 +1536,221 @@ local function addObjects(v)
 					espText.Color = objData.Color
 					espText.Outline = true
 					espText.Center = true
+
+				elseif objType == "Killer" then
+
 					if rootPart ~= nil then
-						table.insert(TempObjects, v.Address)
-						local entry = {}
-						entry.object = rootPart
-						entry.text = espText
-						entry.model = v
-						entry.temporary = true
-						table.insert(TextList, entry)
-					else
-						espText:Remove()
+
+						local rLeg = v:FindFirstChild("Right Leg")
+						local lLeg = v:FindFirstChild("Left Leg")
+						local rArm = v:FindFirstChild("Right Arm") or v:FindFirstChild("Right Horn")
+						local lArm = v:FindFirstChild("Left Arm") or v:FindFirstChild("Left Horn")
+						local head = v:FindFirstChild("Head")
+
+						
+						if rLeg and lLeg and rArm and lArm and head then
+
+							local boxOut, boxMid, boxIn, text = Drawing.new("Square"), Drawing.new("Square"), Drawing.new("Square"), Drawing.new("Text")
+
+							boxIn.Color, boxOut.Color = Color3.fromHex("000000"), Color3.fromHex("000000")
+
+							boxMid.Color, text.Color = Color3.fromHex("FF0000"), Color3.fromHex("FF0000")
+							text.Outline = true
+							text.Center = true
+							text.Text = "Killer (" .. objData.Text .. ")"
+
+							
+							objs = {
+								boxIn = boxIn, 
+								boxMid = boxMid, 
+								boxOut = boxOut, 
+								text = text, 
+								rLeg = rLeg, 
+								lLeg = lLeg, 
+								rArm = rArm, 
+								lArm = lArm, 
+								head = head
+							}
+						else
+							return 
+						end
 					end
+				end
+
+				if rootPart ~= nil then
+					table.insert(TempObjects, v.Address)
+					local entry = {}
+					entry.object = rootPart
+					entry.type = objType
+					if objType == "Killer" then
+						entry.objs = objs
+					else
+						entry.text = espText
+					end
+
+					entry.model = v
+					entry.temporary = true
+
+					table.insert(TextList, entry)
 				else
-					return
+					if espText then espText:Remove() end
 				end
 			end
 		end
+	end
+end
+
+local function updatePositions()
+	for i = #TextList, 1, -1 do
+		local v = TextList[i]
+		if not v then
+			table.remove(TextList, i)
+			continue
+		end
+
+		if (v.type == "Object" and not v.text) or (v.type == "Killer" and not v.objs) then
+			table.remove(TextList, i)
+			continue
+		end
+
+		local ok, result
+
+		if v.type == "Killer" then
+			ok, result = pcall(function()
+				if not v.object or not v.object.Parent then
+					return nil, "remove"
+				end
+
+				local boxIn = v.objs.boxIn
+				local boxMid = v.objs.boxMid
+				local boxOut = v.objs.boxOut
+				local text = v.objs.text
+
+
+				local bottomPos = (v.objs.rLeg.Position + v.objs.lLeg.Position) / 2 - Vector3.new(0, 1, 0)
+				local topPos = v.objs.head.Position + Vector3.new(0, 1, 0)
+				local rightPos = v.objs.rArm.Position
+				local leftPos = v.objs.lArm.Position
+
+				local bottom2 = WorldToScreen(bottomPos)
+				local top2 = WorldToScreen(topPos)
+				local right2 = WorldToScreen(rightPos)
+				local left2 = WorldToScreen(leftPos)
+
+				if right2.X < left2.X then
+					local temp = right2
+					right2 = left2
+					left2 = temp
+				end
+
+				local boxWidth = math.abs(right2.X - left2.X)
+				local boxHeight = math.abs(bottom2.Y - top2.Y)
+
+				local centerX = (right2.X + left2.X) / 2
+				local centerY = (bottom2.Y + top2.Y) / 2
+
+				-- Update Drawing properties
+				boxIn.Size = Vector2.new(boxWidth, boxHeight)
+				boxIn.Position = Vector2.new(centerX - (boxWidth / 2), centerY - (boxHeight / 2))
+
+				boxMid.Size = Vector2.new(boxWidth + 2, boxHeight + 2)
+				boxMid.Position = Vector2.new(centerX - (boxWidth / 2) - 1, centerY - (boxHeight / 2) - 1)
+
+				boxOut.Size = Vector2.new(boxWidth + 4, boxHeight + 4)
+				boxOut.Position = Vector2.new(centerX - (boxWidth / 2) - 2, centerY - (boxHeight / 2) - 2)
+
+				text.Position = Vector2.new(centerX, centerY - (boxHeight / 2) - 12)
+
+				local _, onScreen = WorldToScreen(v.object.Position)
+				local isVisible = onScreen and Config.killersEnabled == true and not string.find(Players.LocalPlayer.Character:GetFullName(), "Killers")
+
+				if isVisible then
+					boxIn.Visible = true
+					boxMid.Visible = true
+					boxOut.Visible = true
+					text.Visible = true
+				else
+					boxIn.Visible = false
+					boxMid.Visible = false
+					boxOut.Visible = false
+					text.Visible = false
+				end
+
+				return true, "ok"
+			end)
+		else
+			-- objects
+			ok, result = pcall(function()
+				if not v.object or not v.object.Parent then
+					return nil, "remove"
+				end
+
+				local objPos = v.object.Position
+				local screenPos, onScreen = WorldToScreen(objPos)
+
+				local isVisible = false
+				local okName, fullname = pcall(function() return v.object:GetFullName() end)
+
+				if okName and string.find(fullname, "Workspace") and onScreen and CheckEnabled(v.text.Text) then
+					isVisible = true
+				end
+
+				if isVisible and Config.espEnabled then
+					v.text.Visible = true
+					v.text.Position = screenPos
+				else
+					v.text.Visible = false
+				end
+
+				-- Generators
+				if v.model and v.object and v.object.Name == "Main" and game.Workspace.Map and game.Workspace.Map:FindFirstChild("Ingame") and game.Workspace.Map.Ingame:FindFirstChild("Map") then
+					local value = 0
+					local okProg, progVal = pcall(function()
+						local prog = v.model:FindFirstChild("Progress")
+						return prog and prog.Value or 0
+					end)
+					if okProg then value = progVal end
+
+					local Progress = 0
+					if value == 26 then Progress = 1
+					elseif value == 52 then Progress = 2
+					elseif value == 78 then Progress = 3
+					elseif value == 100 then
+						Progress = 4
+						pcall(function() v.text.Color = Color3.fromHex("764a4a") end)
+					end
+					if v.model.Name ~= "Fake Generator" then
+						pcall(function()
+							v.text.Text = "Generator (" .. tostring(Progress) .. "/4)"
+						end)
+					end
+				end
+
+				return true, "ok"
+			end)
+		end
+
+		if not ok or result == "remove" or result == nil then
+			pcall(function()
+				if v and v.text then v.text:Remove() end
+				if v and v.objs then
+					v.objs.boxIn:Remove()
+					v.objs.boxMid:Remove()
+					v.objs.boxOut:Remove()
+					v.objs.text:Remove()
+				end
+			end)
+			table.remove(TextList, i)
+			if v and v.Address then
+				for j = #TempObjects, 1, -1 do
+					if TempObjects[j] == v.Address then
+						table.remove(TempObjects, j)
+					end
+				end
+			end
+		end
+
+		continue
 	end
 end
 
@@ -1650,6 +1783,13 @@ local function updateObjects()
 	-- event candy
 	if game.Workspace.Map.Ingame:FindFirstChild("CurrencyLocations") then
 		for _, v in game.Workspace.Map.Ingame:FindFirstChild("CurrencyLocations"):GetChildren() do
+			addObjects(v)
+		end
+	end
+	
+	-- killer
+	if game.Workspace.Players.Killers then
+		for _, v in game.Workspace.Players.Killers:GetChildren() do
 			addObjects(v)
 		end
 	end
@@ -1687,7 +1827,7 @@ local function updateQuickUI()
 			
 		else
 			StaminaText = "Could not get stamina!"
-			if Config.staminaOnMouse == true then
+			if Config.staminaOnMouse or Config.antiZeroStamina then
 				if os.clock() >= lastNotif + 5 then
 					notify.CreateNotification("roundedOutline" , "shitsaken", "An error occured while getting stamina.", 5, 10)
 					lastNotif = os.clock()
@@ -1858,7 +1998,7 @@ end
 
 
 
-local visualsSection = CreateSection("shitsaken " .. versionId .. " // Visuals", Vector2.new(250, 100), Vector2.new(200, 460), Color3.fromRGB(35, 35, 35))
+local visualsSection = CreateSection("shitsaken " .. versionId .. " // Visuals", Vector2.new(250, 100), Vector2.new(200, 488), Color3.fromRGB(35, 35, 35))
 local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 292), Color3.fromRGB(35, 35, 35))
 
 --[[
@@ -1884,7 +2024,8 @@ CreateCheckbox("Fake Generator ESP", Config.noliGenerator, Vector2.new(5, 320), 
 CreateCheckbox("Digital Footprint ESP", Config.johndoeDigitalFootprint, Vector2.new(5, 348), "johndoeDigitalFootprint", visualsSection)
 CreateCheckbox("1x1x1x1 Zombies ESP", Config.oneXFourZombie, Vector2.new(5, 376), "oneXFourZombie", visualsSection)
 CreateCheckbox("C00lkidd Minions ESP", Config.coolkiddMinions, Vector2.new(5, 404), "coolkiddMinions", visualsSection)
-CreateCheckbox("Event Candy ESP", Config.eventItem, Vector2.new(5, 432), "eventPickups", visualsSection)
+CreateCheckbox("Killer ESP", Config.killersEnabled, Vector2.new(5, 432), "killersEnabled", visualsSection)
+CreateCheckbox("Event Candy ESP", Config.eventItem, Vector2.new(5, 460), "eventPickups", visualsSection)
 
 -- utilities section
 CreateHeader("Visual Tools", Vector2.new(5, 25), utiliesSection)
@@ -1937,7 +2078,7 @@ spawn(function()
 	end
 end)
 
-
+-- gui visuble
 spawn(function()
 	while true do
 		if iskeypressed(0x70) then
@@ -2018,7 +2159,15 @@ spawn(function()
 			updatePositions()
 		else
 			for _, v in TextList do
-				v.text:Remove()
+				if v.type == "Killer" then
+					v.objs.boxIn:Remove()
+					v.objs.boxMid:Remove()
+					v.objs.boxOut:Remove()
+					v.objs.text:Remove()
+					
+				else
+					v.text:Remove()
+				end
 			end
 			table.clear(TextList)
 			table.clear(TempObjects)
