@@ -13,7 +13,7 @@ hii dont skid my code please thank youuuu
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.8"
+local versionId = "v1.81"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -1395,7 +1395,6 @@ local function CreateSlider(text:string, var:number, varname:string , steps:numb
 
 	local SliderTitle = Drawing.new("Text")
 	SliderTitle.ZIndex = 11
-	SliderTitle.Size = Vector2.new(200,12)
 	SliderTitle.Position = adjustedPos + Vector2.new(5,3)
 	SliderTitle.Color = Color3.fromRGB(255,255,255)
 	SliderTitle.Text = text
@@ -1418,7 +1417,6 @@ local function CreateSlider(text:string, var:number, varname:string , steps:numb
 	local SliderValue = Drawing.new("Text")
 	SliderValue.ZIndex = 11
 	SliderValue.Center = true
-	SliderValue.Size = Vector2.new(200,12)
 	SliderValue.Position = adjustedPos + Vector2.new(165,11)
 	SliderValue.Color = Color3.fromRGB(255,255,255)
 	SliderValue.Text = var
