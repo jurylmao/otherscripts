@@ -1,5 +1,5 @@
 --[[
-
+ Merry Christmas skids!
 hii dont skid my code please thank youuuu
 hii dont skid my code please thank youuuu
 hii dont skid my code please thank youuuu
@@ -13,13 +13,14 @@ hii dont skid my code please thank youuuu
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.82"
+local versionId = "v1.9"
 
 -- acidzs stuff
 _G.IsDrawing = false
 local Grid
 
 local Players = game:GetService("Players")	
+local Http = game:GetService("HttpService")
 local Mouse = Players.LocalPlayer:GetMouse()
 local UIElements = {}
 local Buttons = {}
@@ -43,7 +44,7 @@ local reelLetters = { -- these tables are seperate so auto reel doesnt have to s
 	[4] = {"D", 0x44},
 }
 
-local keys = { -- ty chatgpt
+local keys = { -- use for later
 	-- top row numbers
 	{ "0", 0x30 },
 	{ "1", 0x31 },
@@ -102,7 +103,6 @@ local keys = { -- ty chatgpt
 	{ "NUMPAD_DIVIDE", 0x6F },
 }
 
-
 local Config = {
 	taphTripmine = true,
 	taphTripwire = true,
@@ -126,9 +126,28 @@ local Config = {
 	killersEnabled = true,
 	-- qte
 	autoQTE = true,
-	killerReelSpeed = 0.05,
-	survivorReelSpeed = 0.10,
+	killerReelSpeed = 0.15,
+	survivorReelSpeed = 0.15,
+	nosferatuRandomDelay = 0.05,
 }
+
+-- save data manager
+
+
+if isfile("shitsaken.cfg") then
+	local loaded = Http:JSONDecode(readfile("shitsaken.cfg"))
+	for i, v in pairs(loaded) do
+		if Config[i] ~= nil then
+			if type(v) == "number" then
+				v = tonumber(string.format("%.2f", tostring(v)))
+			end
+			Config[i] = v
+		end
+	end
+else
+	writefile("shitsaken.cfg", Http:JSONEncode(Config))
+end
+
 
 local textLookup = {
 	Tripmine = "taphTripmine",
@@ -206,37 +225,7 @@ local ESPObjects = {
 		Text = "Sentry",
 		Color = Color3.fromHex("66fffc")
 	},
-
-	["doothsek"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["dumsek"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["dusek"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["umdum"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["toon dusek"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
+	
 	["RespawnLocation"] = {
 		Type = "Part",
 		Root = "None",
@@ -312,7 +301,7 @@ local ESPObjects = {
 	["c00lkidd"] = {
 		Type = "Model",
 		Root = "HumanoidRootPart",
-		Text = "Killer",
+		Text = "c00lkidd",
 		Color = Color3.fromHex("ff0000"),
 		Special = "Killer"
 	},
@@ -426,7 +415,49 @@ local ESPObjects = {
 		Text = "C00lkidd Minion",
 		Color = Color3.fromHex("ff0000"),
 	},
+
 }
+
+local candyESPObjects = {
+	-- event candy
+	["Builderman"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["Chance"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["Guest"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["Noob"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["Shedletsky"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	},
+	["TwoTime"] = {
+		Type = "Model",
+		Root = "Part",
+		Text = "Event Candy",
+		Color = Color3.fromHex("45d16f"),
+	}
+}
+
 
 print("shitsaken " .. versionId .. " loaded")
 
@@ -1214,7 +1245,9 @@ local function addObjects(v)
 					espText.Font = Drawing.Fonts.System
 					espText.Text = objData.Text
 					if rootPart ~= nil then
-						espText.Position = WorldToScreen(rootPart.Position)
+						if rootPart.Position ~= nil then
+							espText.Position = WorldToScreen(rootPart.Position)
+						end
 					else
 						espText:Remove()
 						return
@@ -1274,6 +1307,49 @@ local function addObjects(v)
 					else
 						entry.text = espText
 					end
+
+					entry.model = v
+					entry.temporary = true
+
+					table.insert(TextList, entry)
+				else
+					if espText then espText:Remove() end
+				end
+			end
+		end
+	end
+end
+
+local function addCandyObjects(v) -- im so fucking lazyyyyyyyyyyyy
+	for objName, objData in pairs(candyESPObjects) do
+		if string.find(v.Name, objName) and v:IsA(objData.Type) and not table.find(TempObjects, v.Address) and game.Workspace.Map.Ingame:FindFirstChild("Map") then
+			local objType
+			local rootPart = v:FindFirstChild(objData.Root) or nil
+			if objData.Root == "None" or rootPart then
+				objType = "Object"
+
+				local espText
+					espText = Drawing.new("Text")
+					espText.Font = Drawing.Fonts.System
+					espText.Text = objData.Text
+					if rootPart ~= nil then
+						espText.Position = WorldToScreen(rootPart.Position)
+					else
+						espText:Remove()
+						return
+					end
+					espText.Color = objData.Color
+					espText.Outline = true
+					espText.Center = true
+
+				
+
+				if rootPart ~= nil then
+					table.insert(TempObjects, v.Address)
+					local entry = {}
+					entry.object = rootPart
+					entry.type = objType
+					entry.text = espText
 
 					entry.model = v
 					entry.temporary = true
@@ -1349,7 +1425,7 @@ local function updatePositions()
 				text.Position = Vector2.new(centerX, centerY - (boxHeight / 2) - 12)
 
 				local _, onScreen = WorldToScreen(v.object.Position)
-				local isVisible = onScreen and Config.killersEnabled == true and not string.find(Players.LocalPlayer.Character:GetFullName(), "Killers")
+				local isVisible = onScreen and Config.killersEnabled == true --and not string.find(Players.LocalPlayer.Character:GetFullName(), "Killers")
 
 				if isVisible then
 					boxIn.Visible = true
@@ -1470,7 +1546,7 @@ local function updateObjects()
 	-- event candy
 	if game.Workspace.Map.Ingame:FindFirstChild("CurrencyLocations") then
 		for _, v in game.Workspace.Map.Ingame:FindFirstChild("CurrencyLocations"):GetChildren() do
-			addObjects(v)
+			addCandyObjects(v)
 		end
 	end
 	
@@ -1678,7 +1754,8 @@ local function HandleInteractables()
 					end
 				end
 
-				
+				writefile("shitsaken.cfg", Http:JSONEncode(Config))
+				notify("shitsaken", "saved config", 2)
 			end
 		end
 	end
@@ -1687,7 +1764,7 @@ end
 
 
 local visualsSection = CreateSection("shitsaken " .. versionId .. " // Visuals", Vector2.new(250, 100), Vector2.new(200, 488), Color3.fromRGB(35, 35, 35))
-local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 292), Color3.fromRGB(35, 35, 35))
+local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 342), Color3.fromRGB(35, 35, 35))
 
 --[[
 +17 (header -> checkbox)
@@ -1713,7 +1790,7 @@ CreateCheckbox("Digital Footprint ESP", Config.johndoeDigitalFootprint, Vector2.
 CreateCheckbox("1x1x1x1 Zombies ESP", Config.oneXFourZombie, Vector2.new(5, 376), "oneXFourZombie", visualsSection)
 CreateCheckbox("C00lkidd Minions ESP", Config.coolkiddMinions, Vector2.new(5, 404), "coolkiddMinions", visualsSection)
 CreateCheckbox("Killer ESP", Config.killersEnabled, Vector2.new(5, 432), "killersEnabled", visualsSection)
-CreateCheckbox("Event Candy ESP", Config.eventItem, Vector2.new(5, 460), "eventPickups", visualsSection)
+CreateCheckbox("Event Candy ESP", Config.eventItem, Vector2.new(5, 460), "eventItem", visualsSection)
 
 -- utilities section
 CreateHeader("Visual Tools", Vector2.new(5, 25), utiliesSection)
@@ -1724,7 +1801,8 @@ CreateCheckbox("Auto Generator (Tap Space)", Config.autoGen, Vector2.new(5, 108)
 CreateCheckbox("Auto Reel/Escape", Config.autoQTE, Vector2.new(5, 136), "autoQTE", utiliesSection)
 CreateSlider("Auto Reel Speed (secs)", Config.killerReelSpeed, "killerReelSpeed", 0.05, 1, Vector2.new(5, 164), utiliesSection)
 CreateSlider("Auto Escape Speed (secs)", Config.survivorReelSpeed, "survivorReelSpeed", 0.05, 1, Vector2.new(5, 214), utiliesSection)
-CreateCheckbox("Anti Zero Stamina", Config.antiZeroStamina, Vector2.new(5, 264), "antiZeroStamina", utiliesSection)
+CreateSlider("Nosferatu Latency (secs)", Config.nosferatuRandomDelay, "nosferatuRandomDelay", 0.05, 1, Vector2.new(5, 264), utiliesSection)
+CreateCheckbox("Anti Zero Stamina", Config.antiZeroStamina, Vector2.new(5, 314), "antiZeroStamina", utiliesSection)
 
 -- pointless but whatever
 local function UIUpdate()	
@@ -1827,11 +1905,21 @@ spawn(function()
 					end
 				end
 			end
+			local qteDelay
+			
+			if math.random(1,2) == 1 then -- idk why the fuck this works but the other thing didnt but whatever bro
+				qteDelay = Config.nosferatuRandomDelay
+			else
+				qteDelay = 0 - Config.nosferatuRandomDelay
+			end
+			if qteDelay <= 0 then
+				qteDelay = 0.01
+			end
 			
 			if Players.LocalPlayer.Character.Parent.Name == "Killers" then
-				task.wait(Config.killerReelSpeed)
+				task.wait(Config.killerReelSpeed + qteDelay)
 			else
-				task.wait(Config.survivorReelSpeed)
+				task.wait(Config.survivorReelSpeed + qteDelay)
 			end
 			
 		end	
