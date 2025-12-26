@@ -1,5 +1,5 @@
 --[[
- Merry Christmas skids!
+
 hii dont skid my code please thank youuuu
 hii dont skid my code please thank youuuu
 hii dont skid my code please thank youuuu
@@ -13,7 +13,7 @@ hii dont skid my code please thank youuuu
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.9"
+local versionId = "v1.91"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -1425,7 +1425,7 @@ local function updatePositions()
 				text.Position = Vector2.new(centerX, centerY - (boxHeight / 2) - 12)
 
 				local _, onScreen = WorldToScreen(v.object.Position)
-				local isVisible = onScreen and Config.killersEnabled == true --and not string.find(Players.LocalPlayer.Character:GetFullName(), "Killers")
+				local isVisible = onScreen and Config.killersEnabled == true and not string.find(Players.LocalPlayer.Character:GetFullName(), "Killers")
 
 				if isVisible then
 					boxIn.Visible = true
