@@ -13,7 +13,7 @@ hii dont skid my code please thank youuuu
 -- .# - added feature
 -- .## - bug fix OR minor change
 
-local versionId = "v1.91"
+local versionId = "v2.0"
 
 -- acidzs stuff
 _G.IsDrawing = false
@@ -121,6 +121,7 @@ local Config = {
 	antiZeroStamina = true,
 	veeronicaSpray = true,
 	autoGen = false,
+	autoTrick = true,
 	oneXFourZombie = true,
 	coolkiddMinions = true,
 	killersEnabled = true,
@@ -225,7 +226,7 @@ local ESPObjects = {
 		Text = "Sentry",
 		Color = Color3.fromHex("66fffc")
 	},
-	
+
 	["RespawnLocation"] = {
 		Type = "Part",
 		Root = "None",
@@ -249,7 +250,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Veeronica"
 	},
-	
+
 	["Nosferatu"] = {
 		Type = "Model",
 		Root = "HumanoidRootPart",
@@ -257,7 +258,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Killer"
 	},
-	
+
 	["Noli"] = {
 		Type = "Model",
 		Root = "HumanoidRootPart",
@@ -265,7 +266,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Killer"
 	},
-	
+
 	["1x1x1x1"] = {
 		Type = "Model",
 		Root = "HumanoidRootPart",
@@ -273,7 +274,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Killer"
 	},
-	
+
 	["JohnDoe"] = {
 		Type = "Model",
 		Root = "HumanoidRootPart",
@@ -281,7 +282,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Killer"
 	},
-	
+
 	["Slasher"] = {
 		Type = "Model",
 		Root = "HumanoidRootPart",
@@ -289,7 +290,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ecc3dc"),
 		Special = "Killer"
 	},
-	
+
 	["Sixer"] = {
 		Type = "Model",
 		Root = "HumanoidRootPart",
@@ -297,7 +298,7 @@ local ESPObjects = {
 		Color = Color3.fromHex("ff0000"),
 		Special = "Killer"
 	},
-	
+
 	["c00lkidd"] = {
 		Type = "Model",
 		Root = "HumanoidRootPart",
@@ -479,8 +480,27 @@ local memoryOffsets = {
 	Ping = get_offsets()["Ping"],
 	Text = get_offsets()["TextLabelText"],
 	ElementVisible = get_offsets()["FrameVisible"],
-	Value = get_offsets()["Value"]
+	Value = get_offsets()["Value"],
+	Adornee = get_offsets()["Adornee"]
 }
+
+local function getSortedESPObjectsByNameLength()
+	local list = {}
+
+	for name, data in pairs(ESPObjects) do
+		table.insert(list, {
+			name = name,
+			data = data,
+			len = #name
+		})
+	end
+
+	table.sort(list, function(a, b)
+		return a.len > b.len
+	end)
+
+	return list
+end
 
 
 -- acidzs autogen
@@ -506,7 +526,7 @@ local function parse_grid()
 				if circle then
 					local numberLabel = circle:FindFirstChild("Number")
 					if numberLabel then
-						local pairNum = tonumber(numberLabel.Text)
+						local pairNum = tonumber(memory_read("string", numberLabel.Address + memoryOffsets.Text))
 						cells[row][col].value = pairNum
 
 						if not circles[pairNum] then
@@ -1137,7 +1157,7 @@ local function CreateSlider(text:string, var:number, varname:string , steps:numb
 	SliderValue.Position = adjustedPos + Vector2.new(165,11)
 	SliderValue.Color = Color3.fromRGB(255,255,255)
 	SliderValue.Text = var
-	
+
 	AddElement(SliderOutline, section)
 	AddElement(SliderContainerBackground, section)
 	AddElement(SliderContainerBackgroundOutline, section)
@@ -1145,7 +1165,7 @@ local function CreateSlider(text:string, var:number, varname:string , steps:numb
 	AddElement(SliderBackground, section)
 	AddElement(Slider, section)
 	AddElement(SliderValue, section)
-	
+
 	local Button = {}
 	Button.Box = SliderBackground
 	Button.Slider = Slider
@@ -1157,7 +1177,7 @@ local function CreateSlider(text:string, var:number, varname:string , steps:numb
 	Button.Type = "Slider"
 
 	table.insert(Buttons, Button)
-	
+
 	do -- make the slider match the current value
 		local maxVal = tonumber(totalSteps) or 1
 		if maxVal <= 0 then maxVal = 1 end
@@ -1209,11 +1229,20 @@ end
 local function veeronicaSpecial(object:Model)
 	local start = object.Name:find("Spray")
 	local prefix = object.Name:sub(1, start - 1)
-	return prefix .. "'s Graffiti" 
+	
+	if prefix == game.Players.LocalPlayer.Name then
+		return "Your Graffiti" 
+	else
+		return prefix .. "'s Graffiti" 
+	end
+	
+	
 end
 
 local function addObjects(v)
-	for objName, objData in pairs(ESPObjects) do
+	for _, entry in ipairs(getSortedESPObjectsByNameLength()) do
+		local objName = entry.name
+		local objData = entry.data
 		if string.find(v.Name, objName) and v:IsA(objData.Type) and not table.find(TempObjects, v.Address) and game.Workspace.Map.Ingame:FindFirstChild("Map") then
 			local objType
 			local rootPart = v:FindFirstChild(objData.Root) or nil
@@ -1266,7 +1295,7 @@ local function addObjects(v)
 						local lArm = v:FindFirstChild("Left Arm") or v:FindFirstChild("Left Horn")
 						local head = v:FindFirstChild("Head")
 
-						
+
 						if rLeg and lLeg and rArm and lArm and head then
 
 							local boxOut, boxMid, boxIn, text = Drawing.new("Square"), Drawing.new("Square"), Drawing.new("Square"), Drawing.new("Text")
@@ -1279,7 +1308,7 @@ local function addObjects(v)
 							text.Font = Drawing.Fonts.System
 							text.Text = "Killer (" .. objData.Text .. ")"
 
-							
+
 							objs = {
 								boxIn = boxIn, 
 								boxMid = boxMid, 
@@ -1329,20 +1358,18 @@ local function addCandyObjects(v) -- im so fucking lazyyyyyyyyyyyy
 				objType = "Object"
 
 				local espText
-					espText = Drawing.new("Text")
-					espText.Font = Drawing.Fonts.System
-					espText.Text = objData.Text
-					if rootPart ~= nil then
-						espText.Position = WorldToScreen(rootPart.Position)
-					else
-						espText:Remove()
-						return
-					end
-					espText.Color = objData.Color
-					espText.Outline = true
-					espText.Center = true
-
-				
+				espText = Drawing.new("Text")
+				espText.Font = Drawing.Fonts.System
+				espText.Text = objData.Text
+				if rootPart ~= nil then
+					espText.Position = WorldToScreen(rootPart.Position)
+				else
+					espText:Remove()
+					return
+				end
+				espText.Color = objData.Color
+				espText.Outline = true
+				espText.Center = true
 
 				if rootPart ~= nil then
 					table.insert(TempObjects, v.Address)
@@ -1412,7 +1439,6 @@ local function updatePositions()
 				local centerX = (right2.X + left2.X) / 2
 				local centerY = (bottom2.Y + top2.Y) / 2
 
-				-- Update Drawing properties
 				boxIn.Size = Vector2.new(boxWidth, boxHeight)
 				boxIn.Position = Vector2.new(centerX - (boxWidth / 2), centerY - (boxHeight / 2))
 
@@ -1425,8 +1451,25 @@ local function updatePositions()
 				text.Position = Vector2.new(centerX, centerY - (boxHeight / 2) - 12)
 
 				local _, onScreen = WorldToScreen(v.object.Position)
-				local isVisible = onScreen and Config.killersEnabled == true and not string.find(Players.LocalPlayer.Character:GetFullName(), "Killers")
+				
+				-- fake noli check (✡️✡️✡️)
+				local function isRael(model)
+					if not model or not model.Address then
+						return false
+					end
 
+					for _, plr in ipairs(Players:GetChildren()) do
+						local char = plr.Character
+						if char and char.Address and char.Address == model.Address then
+							return true
+						end
+					end
+
+					return false
+				end
+
+				
+				local isVisible = isRael(v.model) and onScreen and Config.killersEnabled == true and not string.find(Players.LocalPlayer.Character:GetFullName(), "Killers")
 				if isVisible then
 					boxIn.Visible = true
 					boxMid.Visible = true
@@ -1549,7 +1592,7 @@ local function updateObjects()
 			addCandyObjects(v)
 		end
 	end
-	
+
 	-- killer
 	if game.Workspace.Players.Killers then
 		for _, v in game.Workspace.Players.Killers:GetChildren() do
@@ -1578,16 +1621,16 @@ local function updateQuickUI()
 				if string.find(r, "/") then -- for some reason this bullshit works so
 					local totalstam = tonumber(string.match(r, "%d+", string.find(r, "/") + 1))
 					color = Color3.fromRGB(255*( 1 - currentstam / totalstam),255*(currentstam / totalstam), 60)
-					
+
 				end
-				
+
 			end
 			StaminaText = r
-			
+
 			if currentstam == 1 and Config.antiZeroStamina then
 				keyrelease(0xA0)
 			end
-			
+
 		else
 			StaminaText = "Could not get stamina!"
 			if Config.staminaOnMouse or Config.antiZeroStamina then
@@ -1695,7 +1738,7 @@ local function HandleInteractables()
 	if ismouse1pressed() and guiVis and isrbxactive() then
 		for i, button in ipairs(Buttons) do
 			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
-			
+
 			if mousePos.X >= button.Box.Position.X and 
 				mousePos.X <= button.Box.Position.X + button.Box.Size.X and
 				mousePos.Y >= button.Box.Position.Y and 
@@ -1716,7 +1759,7 @@ local function HandleInteractables()
 						task.wait()
 					end
 				end
-				
+
 				if button.Type == "Slider" then
 					-- slider shit
 					while ismouse1pressed() do
@@ -1749,7 +1792,7 @@ local function HandleInteractables()
 						if button.varText then
 							button.varText.Text = tostring(string.format("%.2f", value))
 						end
-						
+
 						task.wait()
 					end
 				end
@@ -1764,7 +1807,7 @@ end
 
 
 local visualsSection = CreateSection("shitsaken " .. versionId .. " // Visuals", Vector2.new(250, 100), Vector2.new(200, 488), Color3.fromRGB(35, 35, 35))
-local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 342), Color3.fromRGB(35, 35, 35))
+local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 370), Color3.fromRGB(35, 35, 35))
 
 --[[
 +17 (header -> checkbox)
@@ -1803,7 +1846,7 @@ CreateSlider("Auto Reel Speed (secs)", Config.killerReelSpeed, "killerReelSpeed"
 CreateSlider("Auto Escape Speed (secs)", Config.survivorReelSpeed, "survivorReelSpeed", 0.05, 1, Vector2.new(5, 214), utiliesSection)
 CreateSlider("Nosferatu Latency (secs)", Config.nosferatuRandomDelay, "nosferatuRandomDelay", 0.05, 1, Vector2.new(5, 264), utiliesSection)
 CreateCheckbox("Anti Zero Stamina", Config.antiZeroStamina, Vector2.new(5, 314), "antiZeroStamina", utiliesSection)
-
+CreateCheckbox("Auto Veeronica Trick", Config.autoTrick, Vector2.new(5, 342), "autoTrick", utiliesSection)
 -- pointless but whatever
 local function UIUpdate()	
 	HandleSectionDrag()
@@ -1906,7 +1949,7 @@ spawn(function()
 				end
 			end
 			local qteDelay
-			
+
 			if math.random(1,2) == 1 then -- idk why the fuck this works but the other thing didnt but whatever bro
 				qteDelay = Config.nosferatuRandomDelay
 			else
@@ -1915,15 +1958,35 @@ spawn(function()
 			if qteDelay <= 0 then
 				qteDelay = 0.01
 			end
-			
+
 			if Players.LocalPlayer.Character.Parent.Name == "Killers" then
 				task.wait(Config.killerReelSpeed + qteDelay)
 			else
 				task.wait(Config.survivorReelSpeed + qteDelay)
 			end
-			
+
 		end	
 		task.wait()
+	end
+end)
+
+-- veeronica auto trick
+spawn(function()
+	while true do
+		local highlight = game.ReplicatedStorage.Assets.Survivors.Veeronica.Behavior:FindFirstChildOfClass("Highlight")
+		if highlight and Config.autoTrick then
+			local R = memory_read("float", highlight.Address + 0xE0 + 0)
+			local G = memory_read("float", highlight.Address + 0xE0 + 4)
+			local B = memory_read("float", highlight.Address + 0xE0 + 8)
+			local Adornee = memory_read("uintptr_t", highlight.Address + memoryOffsets.Adornee)
+			local trickReadyColor = Color3.fromRGB(241, 85, 255)
+			if R == trickReadyColor.R and G == trickReadyColor.G and B == trickReadyColor.B and Adornee == game.Players.LocalPlayer.Character.Address then
+				keypress(0x20)
+				task.wait(0.05)
+				keyrelease(0x20)
+			end
+		end
+	task.wait(0.05)
 	end
 end)
 
@@ -1940,7 +2003,7 @@ spawn(function()
 					v.objs.boxMid:Remove()
 					v.objs.boxOut:Remove()
 					v.objs.text:Remove()
-					
+
 				else
 					v.text:Remove()
 				end
