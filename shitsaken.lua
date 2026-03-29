@@ -3,7 +3,7 @@ if _G.StopESP then
 	_G.StopESP()
 end
 
-local vn = "2.1.1"
+local vn = "2.1.2"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -49,6 +49,7 @@ local config = {
 
 	["Keybind_SolveGen"] = 0x20,
 	["Toggle_SolveGen"] = true,
+	["Number_SolveGenSpeed"] = 5,
 
 	--General
 	["Toggle_VeeTrick"] = true,
@@ -206,7 +207,7 @@ function gui.new(name, size)
 	self.gui_name = name
 
 	self.sectioncount = 0
-
+	self.visible = true
 	self.objcount = 0
 
 	self.sections = {}
@@ -1353,7 +1354,7 @@ local function draw(cells, solutions)
 				local targetY = pos.Y + 45
 
 				-- Smoothly move between cells (10 small lerp steps)
-				smooth_move(x, y, targetX, targetY, 3, 0.001)
+				smooth_move(x, y, targetX, targetY, config["Number_SolveGenSpeed"], 0.001)
 
 				x, y = targetX, targetY
 			end)
@@ -2978,6 +2979,8 @@ ui:AddSection("visuals", true, {
 ui:AddSection("automation", false, {
 	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "automation"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Generator", Variable = "Toggle_SolveGen"},
+	{object_type = "Slider", ID = ui:generateID(), Text = "Solve Generator Speed", Variable = "Number_SolveGenSpeed", stepSize = 1, max = 11, min = 1},
+
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Veeronica Trick", Variable = "Toggle_VeeTrick"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Nosferatu QTE", Variable = "Toggle_NosferatuAuto"},
 	{object_type = "Slider", ID = ui:generateID(), Text = "Nosferatu QTE Speed (Killer)", Variable = "Number_NosferatuKillerReelSpeed", stepSize = 0.05, max = 0.5, min = 0.05},
@@ -3020,8 +3023,9 @@ local function TickFast()
 	end
 	
 	if iskeypressed(0x70) then
+		ui.visible = not ui.visible
 		for _, drawing in pairs(ui.drawings) do
-			drawing.Visible = not drawing.Visible
+			drawing.Visible = ui.visible
 		end
 		while iskeypressed(0x70) do
 			task.wait(0.05)
@@ -3097,10 +3101,12 @@ task.spawn(function() -- manager ui thread
 			end
 			break
 		end
-		
-		ui:ManageSections()
-		ui:ManageClose()
-		ui:ManageDragging()
+		if ui.visible then
+			ui:ManageSections()
+			ui:ManageClose()
+			ui:ManageDragging()
+			
+		end
 		task.wait(0)
 	end
 end)
