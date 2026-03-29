@@ -1,10 +1,9 @@
 -- good luck reading through this slop!
-
 if _G.StopESP then
 	_G.StopESP()
 end
 
-local vn = "2.1"
+local vn = "2.1.1"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -2955,39 +2954,6 @@ local function updateStaminaUI()
 	end
 end
 
-local function TickFast()
-	updateESPPositions()
-	veeAT()
-	nosAuto()
-	updateStaminaUI()
-	
-	local speedMults = player.Character:FindFirstChild("SpeedMultipliers")
-	if speedMults and config["Toggle_SpeedHack"] == true then
-		for _, v in pairs(speedMults:GetChildren()) do
-			if v:IsA("NumberValue") then
-				v.Value = config["Number_SpeedHackSpeed"]
-			end
-		end
-	end
-	
-end
-
-local function TickSlow()
-	addObjects()
-	if iskeypressed(config["Keybind_SolveGen"]) then
-		if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI') then
-			if memory_read("float", game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI'):FindFirstChild('Container').Address + memoryOffsets.FrameSizeX) > 0.4 then
-				Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
-				task.spawn(function()
-					SolveGridPuzzle()
-				end)
-			end
-		end	
-	end
-end
-
-abInit()
-
 local ui = gui.new("shitsaken | v" .. vn, Vector2.new(400, 567))
 
 ui:AddSection("visuals", true, {
@@ -3029,14 +2995,58 @@ ui:AddSection("misc", false, {
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Display Stamina on Mouse", Variable = "Toggle_StaminaOnMouse"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Colored Stamina Display", Variable = "Toggle_ColoredStamina"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Anti Zero Stamina", Variable = "Toggle_AntiZeroStamina"},
-	
+
 	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "rage"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Speedhack", Variable = "Toggle_SpeedHack"},
 	{object_type = "Slider", ID = ui:generateID(), Text = "Speedhack Speed", Variable = "Number_SpeedHackSpeed", stepSize = 0.1, max = 7, min = 0},
 
 
-	
+
 })
+
+local function TickFast()
+	updateESPPositions()
+	veeAT()
+	nosAuto()
+	updateStaminaUI()
+	
+	local speedMults = player.Character:FindFirstChild("SpeedMultipliers")
+	if speedMults and config["Toggle_SpeedHack"] == true then
+		for _, v in pairs(speedMults:GetChildren()) do
+			if v:IsA("NumberValue") then
+				v.Value = config["Number_SpeedHackSpeed"]
+			end
+		end
+	end
+	
+	if iskeypressed(0x70) then
+		for _, drawing in pairs(ui.drawings) do
+			drawing.Visible = not drawing.Visible
+		end
+		while iskeypressed(0x70) do
+			task.wait(0.05)
+		end
+	end
+	
+end
+
+local function TickSlow()
+	addObjects()
+	if iskeypressed(config["Keybind_SolveGen"]) then
+		if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI') then
+			if memory_read("float", game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI'):FindFirstChild('Container').Address + memoryOffsets.FrameSizeX) > 0.4 then
+				Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
+				task.spawn(function()
+					SolveGridPuzzle()
+				end)
+			end
+		end	
+	end
+end
+
+abInit()
+
+
 
 print([[
 ==============================
