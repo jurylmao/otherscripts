@@ -1,468 +1,155 @@
---[[
+-- good luck reading through this slop!
 
-hii dont skid my code please thank youuuu
-hii dont skid my code please thank youuuu
-hii dont skid my code please thank youuuu
-hii dont skid my code please thank youuuu
-hii dont skid my code please thank youuuu
-hii dont skid my code please thank youuuu
-
-]]
-
--- note for versionId:
--- .# - added feature
--- .## - bug fix OR minor change
-
-local versionId = "v2.0"
-
--- acidzs stuff
-_G.IsDrawing = false
-local Grid
-
-local Players = game:GetService("Players")	
-local Http = game:GetService("HttpService")
-local Mouse = Players.LocalPlayer:GetMouse()
-local UIElements = {}
-local Buttons = {}
-local TextList = {}
-local TempObjects = {}
-local Sections = {}
-local lastupdate = 0
-local stamina
-local dragging
-local updatesPaused = false
-local eventObjects = true
-local IsDrawing = false
-local lastNotif = 0
-local highestSectionZindex = 667
-local guiVis = true
-
-local reelLetters = { -- these tables are seperate so auto reel doesnt have to sort through a bunch of bullshit
-	[1] = {"W", 0x57},
-	[2] = {"A", 0x41},
-	[3] = {"S", 0x53},
-	[4] = {"D", 0x44},
-}
-
-local keys = { -- use for later
-	-- top row numbers
-	{ "0", 0x30 },
-	{ "1", 0x31 },
-	{ "2", 0x32 },
-	{ "3", 0x33 },
-	{ "4", 0x34 },
-	{ "5", 0x35 },
-	{ "6", 0x36 },
-	{ "7", 0x37 },
-	{ "8", 0x38 },
-	{ "9", 0x39 },
-
-	-- letters
-	{ "A", 0x41 }, { "B", 0x42 }, { "C", 0x43 }, { "D", 0x44 },
-	{ "E", 0x45 }, { "F", 0x46 }, { "G", 0x47 }, { "H", 0x48 },
-	{ "I", 0x49 }, { "J", 0x4A }, { "K", 0x4B }, { "L", 0x4C },
-	{ "M", 0x4D }, { "N", 0x4E }, { "O", 0x4F }, { "P", 0x50 },
-	{ "Q", 0x51 }, { "R", 0x52 }, { "S", 0x53 }, { "T", 0x54 },
-	{ "U", 0x55 }, { "V", 0x56 }, { "W", 0x57 }, { "X", 0x58 },
-	{ "Y", 0x59 }, { "Z", 0x5A },
-
-	-- punctuation
-	{ ";", 0xBA }, { "=", 0xBB }, { ",", 0xBC }, { "-", 0xBD },
-	{ "period", 0xBE }, { "slash", 0xBF }, { "`", 0xC0 }, { "[", 0xDB },
-	{ "backslash", 0xDC }, { "]", 0xDD }, { "'", 0xDE },
-
-	-- space
-	{ "SPACE", 0x20 },
-
-	-- function row f1 f12
-	{ "F1", 0x70 }, { "F2", 0x71 }, { "F3", 0x72 }, { "F4", 0x73 },
-	{ "F5", 0x74 }, { "F6", 0x75 }, { "F7", 0x76 }, { "F8", 0x77 },
-	{ "F9", 0x78 }, { "F10", 0x79 }, { "F11", 0x7A }, { "F12", 0x7B },
-
-	-- modifiers
-	{ "LSHIFT", 0xA0 },
-	{ "RSHIFT", 0xA1 },
-	{ "LCTRL", 0xA2 },
-	{ "RCTRL", 0xA3 },
-
-	-- nav cluster
-	{ "INSERT", 0x2D },
-	{ "DELETE", 0x2E },
-	{ "HOME", 0x24 },
-	{ "END", 0x23 },
-	{ "PAGEUP", 0x21 },
-	{ "PAGEDOWN", 0x22 },
-
-	-- numpad
-	{ "NUMPAD0", 0x60 }, { "NUMPAD1", 0x61 }, { "NUMPAD2", 0x62 },
-	{ "NUMPAD3", 0x63 }, { "NUMPAD4", 0x64 }, { "NUMPAD5", 0x65 },
-	{ "NUMPAD6", 0x66 }, { "NUMPAD7", 0x67 }, { "NUMPAD8", 0x68 },
-	{ "NUMPAD9", 0x69 }, { "NUMPAD_MULTIPLY", 0x6A },
-	{ "NUMPAD_ADD", 0x6B }, { "NUMPAD_SEPARATOR", 0x6C },
-	{ "NUMPAD_SUBTRACT", 0x6D }, { "NUMPAD_DECIMAL", 0x6E },
-	{ "NUMPAD_DIVIDE", 0x6F },
-}
-
-local Config = {
-	taphTripmine = true,
-	taphTripwire = true,
-	gameGenerator = true,
-	noliGenerator = true,
-	gameMedkit = true,
-	gameCola = true,
-	johndoeDigitalFootprint = true,
-	twoTimeRespawn = true,
-	buildermanSentry = true,
-	buildermanDispenser = true,
-	espEnabled = true,
-	eventItem = true,
-	staminaOnMouse = false,
-	coloredStamina = true,
-	antiZeroStamina = true,
-	veeronicaSpray = true,
-	autoGen = false,
-	autoTrick = true,
-	oneXFourZombie = true,
-	coolkiddMinions = true,
-	killersEnabled = true,
-	-- qte
-	autoQTE = true,
-	killerReelSpeed = 0.15,
-	survivorReelSpeed = 0.15,
-	nosferatuRandomDelay = 0.05,
-}
-
--- save data manager
-
-
-if isfile("shitsaken.cfg") then
-	local loaded = Http:JSONDecode(readfile("shitsaken.cfg"))
-	for i, v in pairs(loaded) do
-		if Config[i] ~= nil then
-			if type(v) == "number" then
-				v = tonumber(string.format("%.2f", tostring(v)))
-			end
-			Config[i] = v
-		end
-	end
-else
-	writefile("shitsaken.cfg", Http:JSONEncode(Config))
+if _G.StopESP then
+	_G.StopESP()
 end
 
+local vn = "2.1"
+local lastNotif = 0
+local nosCooldown = 0
+local stamina
 
-local textLookup = {
-	Tripmine = "taphTripmine",
-	Tripwire = "taphTripwire",
-	Generator = "gameGenerator",
-	Fake = "noliGenerator",
-	Med = "gameMedkit",
-	Bloxy = "gameCola",
-	Digital = "johndoeDigitalFootprint",
-	Ritual = "twoTimeRespawn",
-	Sentry = "buildermanSentry",
-	Dispenser = "buildermanDispenser",
-	Shadow = "johndoeDigitalFootprint",
-	Candy = "eventItem",
-	Graffiti = "veeronicaSpray",
-	Zombie = "oneXFourZombie",
-	C00lkidd = "coolkiddMinions",
-	Killer = "killersEnabled"
+local http = game:GetService("HttpService")
+
+local file = "shitsaken_recode.cfg"
+
+local config = {
+	["SurvivorColor"] = Color3.fromRGB(44, 255, 139),
+	["KillerColor"] = Color3.fromRGB(255, 79, 82),
+	["GeneratorColor"] = Color3.fromRGB(170, 59, 59),
+	["FakeGeneratorColor"] = Color3.fromRGB(80, 0, 130),
+	["BloxyColaColor"] = Color3.fromRGB(255, 136, 0),
+	["MedkitColor"] = Color3.fromRGB(255, 181, 182),
+	["GraffitiColor"] = Color3.fromRGB(255, 131, 218),
+	["TripmineColor"] = Color3.fromRGB(255, 234, 0),
+	["TripwireColor"] = Color3.fromRGB(255, 255, 167),
+	["BuildermanSentry"] = Color3.fromRGB(102, 201, 255),
+	["BuildermanDispenser"] = Color3.fromRGB(255, 181, 182),
+	["JohnDoeFootprint"] = Color3.fromRGB(248, 255, 116),
+	["TwoTimeRespawn"] = Color3.fromRGB(255, 255, 255),
+	["CKMinion"] = Color3.fromRGB(170, 0, 0),
+	["1xZombie"] = Color3.fromRGB(0, 170, 0),
+
+
+
+	["DebugMode"] = false,
+
+	-- AcidBlock
+
+	["Toggle_BlockMonitor"] = true,
+	["Keybind_Block"] = 0x51,
+
+	["PredictionWindow"] = 0.1,
+	["ParryPreemption"] = 0.2,
+	["ParryCooldown"] = 0.1,
+	["MaxSwingDuration"] = 0.78,
+	["SwingBlacklistMaxAge"] = 15,
+	["SwingBlacklistSweepInterval"] = 15,
+
+	--AcidGen
+
+	["Keybind_SolveGen"] = 0x20,
+	["Toggle_SolveGen"] = true,
+
+	--General
+	["Toggle_VeeTrick"] = true,
+	["Toggle_StaminaOnMouse"] = true,
+	["Toggle_ColoredStamina"] = true,
+	["Toggle_AntiZeroStamina"] = true,
+
+
+	--Nosferatu
+	["Toggle_NosferatuAuto"] = true,
+	["Number_NosferatuKillerReelSpeed"] = 0.15,
+	["Number_NosferatuSurvivorReelSpeed"] = 0.15,
+	["Number_NosferatuRandomDelay"] = 0.05,
+
+	--Toggles for esp on things
+	["Toggle_SurvivorESP"] = true,
+	["Toggle_KillerESP"] = true,
+	["Toggle_GeneratorESP"] = true,
+	["Toggle_BloxyColaESP"] = true,
+	["Toggle_MedkitESP"] = true,
+	["Toggle_GraffitiESP"] = true,
+	["Toggle_TripmineESP"] = true,
+	["Toggle_TripwireESP"] = true,
+	["Toggle_BuildermanSentryESP"] = true,
+	["Toggle_BuildermanDispenserESP"] = true,
+	["Toggle_JohnDoeFootprintESP"] = true,
+	["Toggle_TwoTimeRespawnESP"] = true,
+	["Toggle_CKMinionESP"] = true,
+	["Toggle_1xZombieESP"] = true,
+
+	--SpeedHack
+	["Toggle_SpeedHack"] = false,
+	["Number_SpeedHackSpeed"] = 3,
 }
+local espDrawings = {}
+local function cleanup()
+	for i = #espDrawings, 1, -1 do
+		local espData = espDrawings[i]
+		if espData and espData.uiparts then
+			for _, drawing in pairs(espData.uiparts) do
+				drawing.Visible = false
+				drawing:Remove()
+			end
+		end
+	end
+	table.clear(espDrawings)
+end
 
-local ESPObjects = {
+_G.StopESP = cleanup
 
-	["Fake"] = { -- putting ts at top so it gets selected first
-		Type = "Model",
-		Root = "Main",
-		Text = "Fake Generator",
-		Color = Color3.fromHex("9800ff")
-	},
+local function colorToTable(color)
+	return {r = color.R, g = color.G, b = color.B}
+end
 
-	["SubspaceTripmine"] = {
-		Type = "Model",
-		Root = "SubspaceBox",
-		Text = "Tripmine",
-		Color = Color3.fromHex("f904f9")
-	},
+local function tableToColor(t)
+	return Color3.new(t.r, t.g, t.b)
+end
 
-	["Tripwire"] = {
-		Type = "Model",
-		Root = "Wire",
-		Text = "Tripwire",
-		Color = Color3.fromHex("f97f04")
-	},
+local function SaveConfig()
+	local dataToSave = {}
 
-	["BloxyCola"] = {
-		Type = "Tool",
-		Root = "ItemRoot",
-		Text = "Bloxy Cola",
-		Color = Color3.fromHex("aa5500")
-	},
+	for k, v in pairs(config) do
+		if typeof(v) == "Color3" then
+			dataToSave[k] = {Type = "Color3", data = colorToTable(v)}
+		else
+			dataToSave[k] = v
+		end
+	end
 
-	["Medkit"] = {
-		Type = "Tool",
-		Root = "ItemRoot",
-		Text = "Medkit",
-		Color = Color3.fromHex("afafaf")
-	},
+	writefile(file, http:JSONEncode(dataToSave))
+end
 
-	["Generator"] = {
-		Type = "Model",
-		Root = "Main",
-		Text = "Generator",
-		Color = Color3.fromHex("ff0000")
-	},
+local function LoadConfig()
+	if isfile(file) then
+		local rawData = readfile(file)
+		local success, decoded = pcall(function() return http:JSONDecode(rawData) end)
 
-	["BuildermanDispenser"] = {
-		Type = "Model",
-		Root = "Root",
-		Text = "Dispenser",
-		Color = Color3.fromHex("ff6666")
-	},
+		if success then
+			for k, v in pairs(decoded) do
+				if type(v) == "table" and v.Type == "Color3" then
+					config[k] = tableToColor(v.data)
+				else
+					config[k] = v
+				end
+			end
+		end
+	else
+		SaveConfig()
+	end
+end
 
-	["BuildermanSentry"] = {
-		Type = "Model",
-		Root = "Root",
-		Text = "Sentry",
-		Color = Color3.fromHex("66fffc")
-	},
+LoadConfig()
 
-	["RespawnLocation"] = {
-		Type = "Part",
-		Root = "None",
-		Text = "Ritual",
-		Color = Color3.fromHex("ffffff"),
-		Special = "TwoTime"
-	},
+local function debugPrint(text:string)
+	if config["DebugMode"] then
+		print(text)
+	end
+end
 
-	["Shadow"] = {
-		Type = "Part",
-		Root = "None",
-		Text = "Digital Footprint",
-		Color = Color3.fromHex("fcf805"),
-		Special = "JohnDoeTrap"
-	},
-
-	["Spray"] = {
-		Type = "Model",
-		Root = "Hitbox",
-		Text = "Graffiti",
-		Color = Color3.fromHex("ecc3dc"),
-		Special = "Veeronica"
-	},
-
-	["Nosferatu"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "Nosferatu",
-		Color = Color3.fromHex("ecc3dc"),
-		Special = "Killer"
-	},
-
-	["Noli"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "Noli",
-		Color = Color3.fromHex("ecc3dc"),
-		Special = "Killer"
-	},
-
-	["1x1x1x1"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "1x1x1x1",
-		Color = Color3.fromHex("ecc3dc"),
-		Special = "Killer"
-	},
-
-	["JohnDoe"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "John Doe",
-		Color = Color3.fromHex("ecc3dc"),
-		Special = "Killer"
-	},
-
-	["Slasher"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "Slasher",
-		Color = Color3.fromHex("ecc3dc"),
-		Special = "Killer"
-	},
-
-	["Sixer"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "Guest 666",
-		Color = Color3.fromHex("ff0000"),
-		Special = "Killer"
-	},
-
-	["c00lkidd"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "c00lkidd",
-		Color = Color3.fromHex("ff0000"),
-		Special = "Killer"
-	},
-
-	["1x1x1x1Zombie"] = {
-		Type = "Model",
-		Root = "Torso",
-		Text = "1x4 Zombie",
-		Color = Color3.fromHex("046000"),
-	},
-	-- coolkidd minions there are so fucking many of these dude holy shit
-	["PizzaDeliveryRig"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Minion1"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Minion2"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Minion3"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Minion4"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["GreenGuy"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["RedGuy"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["BlueGuy"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["PurpleGuy"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Builderman"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Elliot"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["ShedletskyCORRUPT"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["ChancecORRUPT"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Mafia1"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Mafia2"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Mafia3"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-	["Mafia4"] = {
-		Type = "Model",
-		Root = "HumanoidRootPart",
-		Text = "C00lkidd Minion",
-		Color = Color3.fromHex("ff0000"),
-	},
-
-}
-
-local candyESPObjects = {
-	-- event candy
-	["Builderman"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["Chance"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["Guest"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["Noob"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["Shedletsky"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	},
-	["TwoTime"] = {
-		Type = "Model",
-		Root = "Part",
-		Text = "Event Candy",
-		Color = Color3.fromHex("45d16f"),
-	}
-}
-
-
-print("shitsaken " .. versionId .. " loaded")
-
--- offset stuff?? idrk
+-- Offsets
 
 local function get_offsets()
 	local t = {}
@@ -481,27 +168,762 @@ local memoryOffsets = {
 	Text = get_offsets()["TextLabelText"],
 	ElementVisible = get_offsets()["FrameVisible"],
 	Value = get_offsets()["Value"],
-	Adornee = get_offsets()["Adornee"]
+	Adornee = get_offsets()["Adornee"],
+	FrameSizeX = get_offsets()["FrameSizeX"],
 }
-
-local function getSortedESPObjectsByNameLength()
-	local list = {}
-
-	for name, data in pairs(ESPObjects) do
-		table.insert(list, {
-			name = name,
-			data = data,
-			len = #name
-		})
+-- ck clones setup
+local ckClones = {}
+for _, v in pairs(game.ReplicatedStorage.Assets.Skins.Killers.c00lkidd:GetDescendants()) do
+	if v:FindFirstChild("Humanoid") and string.find(v:GetFullName(), "Config") then
+		table.insert(ckClones, v.Name)
 	end
-
-	table.sort(list, function(a, b)
-		return a.len > b.len
-	end)
-
-	return list
 end
 
+-- ui lib new Wowahhhhh
+
+local players = game:GetService("Players")
+local player = players.LocalPlayer
+local mouse = player:GetMouse()
+
+-- converted things so no warnings in script
+drawing = Drawing
+local function is_m1_down() return ismouse1pressed() end
+
+-- 
+local function ismouseinarea(tl_corner, br_corner)
+	mouse = player:GetMouse()
+	if mouse.X >= tl_corner.X and mouse.X <= br_corner.X and mouse.Y >= tl_corner.Y and mouse.Y <= br_corner.Y then
+		return true
+	end
+	return false
+end
+
+local gui = {}
+gui.__index = gui
+
+function gui.new(name, size)
+	local self = setmetatable({}, gui)
+
+	self.gui_name = name
+
+	self.sectioncount = 0
+
+	self.objcount = 0
+
+	self.sections = {}
+
+	self.currentsection = nil
+	self.close = false
+	self.dragging = false
+	self.draggable = true
+	self.size = size or Vector2.new(400, 500)
+	self.position = workspace.CurrentCamera.ViewportSize / 2 - self.size / 2 -- center ui
+	self.sections_start_pos = self.position - Vector2.new(10, 3)
+	self.objects_start_pos = self.sections_start_pos + Vector2.new(0, 40)
+	self.theme = {
+		background = Color3.fromRGB(67, 76, 94),
+		border = Color3.fromRGB(76, 86, 106),
+		text = Color3.fromRGB(129, 161, 193),
+		green = Color3.fromRGB(163, 190, 140),
+		red = Color3.fromRGB(191, 97, 106),
+		hover = Color3.fromRGB(73, 84, 103),
+		click = Color3.fromRGB(83, 108, 141),
+		sectioncontainer = Color3.fromRGB(46, 52, 64),
+		toggle_bg = Color3.fromRGB(94, 129, 172),
+		toggle_filled_bg = Color3.fromRGB(216, 222, 233),
+		toggle_circle = Color3.fromRGB(229, 233, 240),
+	}
+
+	self.base = {}
+	self.drawings = {}
+	self.offset = Vector2.new(0, 0)
+
+	self:InitBase()
+	return self
+end
+
+function gui:Draw(drawingType, properties)
+	local element = drawing.new(drawingType)
+	if properties then
+		for prop, value in pairs(properties) do
+			element[prop] = value
+		end
+	end
+	table.insert(self.drawings, element)
+	return element
+end
+
+function gui:generateID()
+	self.objcount += 1 -- line 70
+	local id = ""
+	for i = 1, 50 do
+		id = id .. string.char(math.random(33, 126))
+	end
+	return id .. tostring(self.objcount)
+end
+
+function gui:ManageSections()
+	if not self.dragging then
+		for i, section in pairs(self.sections) do
+			section.Update()
+
+			for i, element in pairs(section.objects) do
+				if element.object_type == "Toggle" or element.object_type == "Slider" then
+					element.Update()
+				end
+			end
+		end
+	end
+end
+
+function gui:ManageDragging()
+	mouse = player:GetMouse()
+	if ismouseinarea(self.position, self.position + Vector2.new(390, 35)) then
+		if is_m1_down() and self.draggable == true then
+			self.dragging = true
+			local offsets = {}
+			for _, object in pairs(self.drawings) do
+				offsets[object] = object.Position - Vector2.new(mouse.X, mouse.Y)
+			end
+			self.offset = self.position - Vector2.new(mouse.X, mouse.Y)
+			while is_m1_down() do
+				mouse = player:GetMouse()
+				for _, object in pairs(self.drawings) do
+
+					object.Position = Vector2.new(mouse.X, mouse.Y) + offsets[object]
+				end
+				task.wait(0)
+			end
+			self.position = Vector2.new(mouse.X, mouse.Y) + self.offset
+			self.sections_start_pos = self.position - Vector2.new(10, 3)
+			self.objects_start_pos = self.sections_start_pos + Vector2.new(0, 40)
+		else
+			self.dragging = false
+		end
+	end
+end
+
+function gui:ManageClose()
+	if ismouseinarea(self.position + Vector2.new(self.size.X - 28, 18) - Vector2.new(6, 6), self.position + Vector2.new(self.size.X - 28, 18) + Vector2.new(6, 6)) then
+		if is_m1_down() then
+			for _, drawing in self.drawings do
+				drawing:Remove()
+			end
+			self.close = true
+		end
+	end
+end
+
+
+
+function gui:InitBase()
+
+	self.base.base = self:Draw("Square", {
+		Size = self.size - Vector2.new(20, 0),
+		Position = self.position,
+		Color = self.theme.background,
+		Filled = true,
+		ZIndex = 100,
+	})
+
+	self.base.base_lr = self:Draw("Square", { -- extends out for l / r edges
+		Size = self.size - Vector2.new(0, 20),
+		Position = self.base.base.Position - Vector2.new(10, -10),
+		Color = self.theme.background,
+		Filled = true,
+		ZIndex = 100,
+	})
+
+	self.base.base_tl_corner = self:Draw("Circle", { -- top left corner
+		Radius = 10,
+		Position = self.base.base.Position - Vector2.new(0, -10),
+		Color = self.theme.background,
+		NumSides = 24,
+		ZIndex = 100,
+		Filled = true
+	})
+
+	self.base.base_tr_corner = self:Draw("Circle", { -- top right corner
+		Radius = 10,
+		Position = self.base.base.Position + Vector2.new(self.size.X - 20, 10),
+		Color = self.theme.background,
+		NumSides = 24,
+		ZIndex = 100,
+		Filled = true
+	})
+
+	self.base.base_bl_corner = self:Draw("Circle", { -- bottom left corner
+		Radius = 10,
+		Position = self.base.base.Position + Vector2.new(0, self.size.Y - 10),
+		Color = self.theme.background,
+		NumSides = 24,
+		ZIndex = 100,
+		Filled = true
+	})
+
+	self.base.base_br_corner = self:Draw("Circle", { -- bottom right corner
+		Radius = 10,
+		Position = self.base.base.Position + Vector2.new(self.base.base.Size.X, self.base.base.Size.Y - 10),
+		Color = self.theme.sectioncontainer,
+		NumSides = 24,
+		ZIndex = 100,
+		Filled = true
+	})
+
+	self.base.base_tl_corner_outline = self:Draw("Circle", { -- top left corner
+		Radius = 12,
+		Position = self.base.base.Position - Vector2.new(0, -10),
+		Color = self.theme.border,
+		NumSides = 24,
+		ZIndex = 99,
+		Filled = true
+	})
+
+	self.base.base_tr_corner_outline = self:Draw("Circle", { -- top right corner
+		Radius = 12,
+		Position = self.base.base.Position + Vector2.new(self.size.X - 20, 10),
+		Color = self.theme.border,
+		NumSides = 24,
+		ZIndex = 99,
+		Filled = true	
+	})
+
+	self.base.base_bl_corner_outline = self:Draw("Circle", { -- bottom left corner
+		Radius = 12,
+		Position = self.base.base.Position + Vector2.new(0, self.size.Y - 10),
+		Color = self.theme.border,
+		NumSides = 24,
+		ZIndex = 99,
+		Filled = true
+	})
+
+	self.base.base_br_corner_outline = self:Draw("Circle", { -- bottom right corner
+		Radius = 12,
+		Position = self.base.base.Position + Vector2.new(self.base.base.Size.X, self.base.base.Size.Y - 10),
+		Color = self.theme.border,
+		NumSides = 24,
+		ZIndex = 99,
+		Filled = true
+	})
+
+	self.base.base_outline = self:Draw("Square", {
+		Size = self.base.base.Size + Vector2.new(4, 4),
+		Position = self.base.base.Position - Vector2.new(2, 2),
+		Color = self.theme.border,
+		Filled = true,
+		ZIndex = 99
+	})
+
+	self.base.base_lr_outline = self:Draw("Square", {
+		Size = self.size - Vector2.new(-4, 20),
+		Position = self.base.base.Position - Vector2.new(12, -12),
+		Color = self.theme.border,
+		Filled = true,
+		ZIndex = 99,
+	})
+
+	self.base.base_div_topbar = self:Draw("Square", {
+		Size = Vector2.new(self.size.X, 2),
+		Position = self.base.base_lr.Position + Vector2.new(0, 25),
+		Color = self.theme.border,
+		Filled = true,
+		ZIndex = 101,
+
+	})
+
+	self.base.base_div_sidebar = self:Draw("Square", {
+		Size = Vector2.new(2, self.size.Y - 35),
+		Position = self.base.base_lr.Position + Vector2.new(125, 25),
+		Color = self.theme.border,
+		Filled = true,
+		ZIndex = 101,
+
+	})
+
+	self.base.topbar_title = self:Draw("Text", {
+		Font = drawing.Fonts.System,
+		Text = self.gui_name,
+		Position = self.base.base_tl_corner.Position + Vector2.new(22, -4),
+		Size = 20,
+		Color = self.theme.text,
+		Center = false,
+		Outline = false,
+		ZIndex = 101,
+
+	})
+
+	self.base.topbar_decor = self:Draw("Circle", {
+		Radius = 6,
+		Position = self.base.base_tl_corner.Position + Vector2.new(8, 8),
+		Color = self.theme.text,
+		NumSides = 8,
+		ZIndex = 101,
+		Filled = true
+	})
+
+	self.base.topbar_close = self:Draw("Circle", {
+		Radius = 6,
+		Position = self.base.base_tr_corner.Position + Vector2.new(-8, 8),
+		Color = self.theme.red,
+		NumSides = 8,
+		ZIndex = 101,
+		Filled = true
+	})
+
+	self.base.section_container_upper = self:Draw("Square", {
+		Size = Vector2.new(273, self.size.Y - 45),
+		Position = self.base.base_lr.Position + Vector2.new(127, 27),
+		Color = self.theme.sectioncontainer,
+		Filled = true,
+		ZIndex = 102
+	})
+
+	self.base.section_container_lower = self:Draw("Square", {
+		Size = Vector2.new(265, 10),
+		Position = self.base.base_lr.Position + Vector2.new(127, self.base.base_lr.Size.Y),
+		Color = self.theme.sectioncontainer,
+		Filled = true,
+		ZIndex = 102
+	})
+
+end
+
+local function AddDrawing(object, drawing)
+	table.insert(object.drawings, drawing)
+
+	return drawing
+end
+
+function gui:AddObjectToSection(section, data)
+
+	local object = {}
+	object.drawings = {}
+	object.object_type = data.object_type
+
+	local objects = {
+		["SectionTitle"] = function()
+			object.title = AddDrawing(object, self:Draw("Text", {
+				Font = drawing.Fonts.System,
+				Text = data.Text,
+				Position = self.objects_start_pos + Vector2.new(140, 6) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Size = 19,
+				Color = self.theme.text,
+				Center = false,
+				Outline = false,
+				ZIndex = 103
+			}))
+
+			object.div = AddDrawing(object, self:Draw("Square", {
+				Size = Vector2.new(self.size.X - 125, 2),
+				Position = self.objects_start_pos + Vector2.new(125, 29) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.border,
+				Filled = true,
+				ZIndex = 103
+			}))
+
+			self.sections[section].add_y_to_object = self.sections[section].add_y_to_object + 29
+		end,
+
+		["Toggle"] = function()
+			object.title = AddDrawing(object, self:Draw("Text", {
+				Font = drawing.Fonts.System,
+				Text = data.Text,
+				Position = self.objects_start_pos + Vector2.new(145, 15) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Size = 15,
+				Color = self.theme.text,
+				Center = false,
+				Outline = false,
+				ZIndex = 104
+			}))
+
+			object.background = AddDrawing(object, self:Draw("Square", {
+				Size = Vector2.new(self.size.X - 160, 28),
+				Position = self.objects_start_pos + Vector2.new(144, 10) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				Filled = true,
+				ZIndex = 103
+			}))
+
+			object.background_edge_tl = AddDrawing(object, self:Draw("Circle", {
+				Radius = 7,
+				Position = self.objects_start_pos + Vector2.new(142, 16.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				NumSides = 8,
+				ZIndex = 103,
+				Filled = true
+			}))
+
+			object.background_edge_bl = AddDrawing(object, self:Draw("Circle", {
+				Radius = 7,
+				Position = self.objects_start_pos + Vector2.new(142, 30.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				NumSides = 8,
+				ZIndex = 103,
+				Filled = true
+			}))
+
+			object.background_edge_tr = AddDrawing(object, self:Draw("Circle", {
+				Radius = 7,
+				Position = self.objects_start_pos + Vector2.new(385, 16.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				NumSides = 8,
+				ZIndex = 103,
+				Filled = true
+			}))
+
+			object.background_edge_br = AddDrawing(object, self:Draw("Circle", {
+				Radius = 7,
+				Position = self.objects_start_pos + Vector2.new(385, 30.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				NumSides = 8,
+				ZIndex = 103,
+				Filled = true
+			}))
+
+			object.background_edges_lr = AddDrawing(object, self:Draw("Square", {
+				Size = Vector2.new(self.size.X - 143, 14),
+				Position = self.objects_start_pos + Vector2.new(135, 17) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				Filled = true,
+				ZIndex = 103
+			}))
+
+			object.toggle_circle_left = AddDrawing(object, self:Draw("Circle", {
+				Radius = 8,
+				Position = self.objects_start_pos + Vector2.new(360, 23.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.toggle_bg,
+				NumSides = 8,
+				ZIndex = 104,
+				Filled = true
+			}))
+
+			object.toggle_circle_right = AddDrawing(object, self:Draw("Circle", {
+				Radius = 8,
+				Position = self.objects_start_pos + Vector2.new(376, 23.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.toggle_bg,
+				NumSides = 8,
+				ZIndex = 104,
+				Filled = true
+			}))
+
+			object.toggle_circle_center = AddDrawing(object, self:Draw("Square", {
+				Size = Vector2.new(16, 16),
+				Position = self.objects_start_pos + Vector2.new(360, 15.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.toggle_bg,
+				Filled = true,
+				ZIndex = 104
+			}))
+
+			object.toggle_circle_main = AddDrawing(object, self:Draw("Circle", {
+				Radius = 6,
+				Position = object.toggle_circle_left.Position,
+				Color = self.theme.toggle_circle,
+				NumSides = 8,
+				ZIndex = 105,
+				Filled = true
+			}))
+
+			if config[data.Variable] == true then
+				object.toggle_circle_main.Position = object.toggle_circle_right.Position
+			end
+
+			object.Update = function() -- Folk :pray:
+				if ismouseinarea(object.background_edge_tl.Position - Vector2.new(7, 7), object.background_edge_br.Position + Vector2.new(7, 7)) then
+					if is_m1_down() then
+						self.draggable = false
+						config[data.Variable] = not config[data.Variable]
+						if config[data.Variable] == true then
+							object.toggle_circle_main.Position = object.toggle_circle_right.Position
+						else
+							object.toggle_circle_main.Position = object.toggle_circle_left.Position
+						end
+
+						while is_m1_down() do
+							task.wait(0)
+						end
+						cleanup()
+						return
+					else
+						self.draggable = true
+					end
+					object.background.Color = self.theme.hover
+					object.background_edge_tl.Color = self.theme.hover
+					object.background_edge_tr.Color = self.theme.hover
+					object.background_edge_bl.Color = self.theme.hover
+					object.background_edge_br.Color = self.theme.hover
+					object.background_edges_lr.Color = self.theme.hover
+				else
+					object.background.Color = self.theme.background
+					object.background_edge_tl.Color = self.theme.background
+					object.background_edge_tr.Color = self.theme.background
+					object.background_edge_bl.Color = self.theme.background
+					object.background_edge_br.Color = self.theme.background
+					object.background_edges_lr.Color = self.theme.background
+				end
+			end
+
+			self.sections[section].add_y_to_object += 35
+
+		end,
+
+		["Slider"] = function()
+			object.title = AddDrawing(object, self:Draw("Text", {
+				Font = drawing.Fonts.System,
+				Text = data.Text,
+				Position = self.objects_start_pos + Vector2.new(145, 15) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Size = 15,
+				Color = self.theme.text,
+				Center = false,
+				Outline = false,
+				ZIndex = 104
+			}))
+
+			object.background = AddDrawing(object, self:Draw("Square", {
+				Size = Vector2.new(self.size.X - 160, 50),
+				Position = self.objects_start_pos + Vector2.new(144, 10) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				Filled = true,
+				ZIndex = 103
+			}))
+
+			object.background_edge_tl = AddDrawing(object, self:Draw("Circle", {
+				Radius = 7,
+				Position = self.objects_start_pos + Vector2.new(142, 16.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				NumSides = 8,
+				ZIndex = 103,
+				Filled = true
+			}))
+
+			object.background_edge_bl = AddDrawing(object, self:Draw("Circle", {
+				Radius = 7,
+				Position = self.objects_start_pos + Vector2.new(142, 52.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				NumSides = 8,
+				ZIndex = 103,
+				Filled = true
+			}))
+
+			object.background_edge_tr = AddDrawing(object, self:Draw("Circle", {
+				Radius = 7,
+				Position = self.objects_start_pos + Vector2.new(385, 16.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				NumSides = 8,
+				ZIndex = 103,
+				Filled = true
+			}))
+
+			object.background_edge_br = AddDrawing(object, self:Draw("Circle", {
+				Radius = 7,
+				Position = self.objects_start_pos + Vector2.new(385, 52.5) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				NumSides = 8,
+				ZIndex = 103,
+				Filled = true
+			}))
+
+			object.background_edges_lr = AddDrawing(object, self:Draw("Square", {
+				Size = Vector2.new(self.size.X - 143, 36),
+				Position = self.objects_start_pos + Vector2.new(135, 17) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.background,
+				Filled = true,
+				ZIndex = 103
+			}))
+
+			object.slider_bg_center = AddDrawing(object, self:Draw("Square", {
+				Size = Vector2.new(self.size.X -175, 6),
+				Position = self.objects_start_pos + Vector2.new(150, 43) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.toggle_bg,
+				Filled = true,
+				ZIndex = 106
+			}))
+
+			object.slider_bg_l = AddDrawing(object, self:Draw("Circle", {
+				Radius = 3,
+				Position = self.objects_start_pos + Vector2.new(150, 46) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.toggle_filled_bg,
+				NumSides = 8,
+				ZIndex = 106,
+				Filled = true
+			}))
+
+			object.slider_bg_r = AddDrawing(object, self:Draw("Circle", {
+				Radius = 3,
+				Position = self.objects_start_pos + Vector2.new(150 + self.size.X -175, 46) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.toggle_bg,
+				NumSides = 8,
+				ZIndex = 106,
+				Filled = true
+			}))
+
+			object.display = AddDrawing(object, self:Draw("Text", {
+				Font = drawing.Fonts.System,
+				Text = string.format("%.2f", config[data.Variable]),
+				Position = self.objects_start_pos + Vector2.new(355, 16) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Size = 12,
+				Color = self.theme.text,
+				Center = false,
+				Outline = false,
+				ZIndex = 106
+			}))
+
+			local fill_percentage = (config[data.Variable] - data.min) / (data.max - data.min)
+			object.slider_top_main = AddDrawing(object, self:Draw("Circle", {
+				Radius = 6,
+				Position = self.objects_start_pos + Vector2.new(150 + ((object.slider_bg_r.Position.X - object.slider_bg_l.Position.X) * fill_percentage), 46) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.toggle_circle,
+				NumSides = 8,
+				ZIndex = 108,
+				Filled = true
+			}))
+
+			object.slider_top_center = AddDrawing(object, self:Draw("Square", {
+				Size = Vector2.new(object.slider_top_main.Position.X - (self.objects_start_pos.X + 150), 6),
+				Position = self.objects_start_pos + Vector2.new(150, 43) + Vector2.new(0, self.sections[section].add_y_to_object),
+				Color = self.theme.toggle_filled_bg,
+				Filled = true,
+				ZIndex = 107
+			}))
+
+			local total_sections = (data.max - data.min) / data.stepSize
+
+			object.Update = function() -- Folk :pray:
+				if ismouseinarea(object.background_edge_tl.Position - Vector2.new(7, 7), object.background_edge_br.Position + Vector2.new(7, 7)) then
+					if is_m1_down() and ismouseinarea(object.slider_bg_l.Position - Vector2.new(6, 6), object.slider_bg_r.Position + Vector2.new(6, 6)) then
+
+						while is_m1_down() do
+							object.slider_top_main.Position = Vector2.new(math.clamp(player:GetMouse().X, object.slider_bg_l.Position.X, object.slider_bg_r.Position.X), object.slider_top_main.Position.Y)
+							object.slider_top_center.Size = Vector2.new(object.slider_top_main.Position.X - object.slider_top_center.Position.X, 6)
+							local value = math.round((object.slider_top_main.Position.X - object.slider_bg_l.Position.X) / (object.slider_bg_r.Position.X - object.slider_bg_l.Position.X) * total_sections) * data.stepSize
+							config[data.Variable] = value
+							object.display.Text = string.format("%.2f", value)
+							task.wait(0)
+						end
+						SaveConfig()
+
+						return
+					else
+						self.draggable = true
+					end
+					object.background.Color = self.theme.hover
+					object.background_edge_tl.Color = self.theme.hover
+					object.background_edge_tr.Color = self.theme.hover
+					object.background_edge_bl.Color = self.theme.hover
+					object.background_edge_br.Color = self.theme.hover
+					object.background_edges_lr.Color = self.theme.hover
+				else
+					object.background.Color = self.theme.background
+					object.background_edge_tl.Color = self.theme.background
+					object.background_edge_tr.Color = self.theme.background
+					object.background_edge_bl.Color = self.theme.background
+					object.background_edge_br.Color = self.theme.background
+					object.background_edges_lr.Color = self.theme.background
+				end
+			end
+
+			self.sections[section].add_y_to_object = self.sections[section].add_y_to_object + 57
+		end,
+	}
+
+	objects[data.object_type]()
+	self.sections[section].objects[data.ID] = object
+
+end
+
+function gui:AddSection(name, selected, objects)
+
+	local section = {}	
+	section.add_y_to_object = 0
+	section.objects = {}
+	self.sections[name] = section
+	self.sections[name].setup = objects
+	self.sectioncount += 1
+
+	section.base = self:Draw("Square", {
+		Size = Vector2.new(125, 40),
+		Position = self.sections_start_pos + Vector2.new(0, 40* self.sectioncount),
+		Color = self.theme.background,
+		Filled = true,
+		ZIndex = 102
+	})
+
+	section.title = self:Draw("Text", {
+		Font = drawing.Fonts.System,
+		Text = name,
+		Position = section.base.Position + Vector2.new(30, 11),
+		Size = 15,
+		Color = self.theme.text,
+		Center = false,
+		Outline = false,
+		ZIndex = 103
+	})
+
+	section.decor = self:Draw("Circle", {
+		Radius = 4,
+		Position = Vector2.new(section.base.Position.X + 20 ,section.base.Size.Y/2 + section.base.Position.Y),
+		Color = self.theme.text,
+		NumSides = 8,
+		ZIndex = 103,
+		Filled = true
+	})
+
+	section.div = self:Draw("Square", {
+		Size = Vector2.new(125, 2),
+		Position = section.base.Position + Vector2.new(0, 39),
+		Color = self.theme.border,
+		Filled = true,
+		ZIndex = 103
+	})
+
+	section.Update = function()
+		mouse = player:GetMouse()
+		if ismouseinarea(section.base.Position, section.base.Position + section.base.Size) then
+			if is_m1_down() then
+				self.draggable = false
+				task.spawn(function()
+					self.sections[name].add_y_to_object = 0
+					if self.currentsection ~= name then
+						for _, object in pairs(self.sections[self.currentsection].objects) do
+							for _, drawing in pairs(object.drawings) do
+								drawing:Remove()
+							end
+						end
+						self.sections[self.currentsection].objects = {}
+						self.currentsection = name
+						for _, object in pairs(self.sections[name].setup) do
+							self:AddObjectToSection(name, object)
+						end
+					end
+
+					section.base.Color = self.theme.click
+					while is_m1_down() do
+						task.wait(0)
+					end
+					self.draggable = true
+					SaveConfig()
+				end)
+
+				return
+			end
+			section.base.Color = self.theme.hover
+		else
+			if self.currentsection ~= name then
+				section.base.Color = self.theme.background
+			end
+
+		end
+	end
+
+	if selected then
+		section.base.Color = self.theme.hover
+		self.currentsection = name
+
+		for _, object in pairs(self.sections[name].setup) do
+			self:AddObjectToSection(name, object)
+		end
+
+	end
+end
 
 -- acidzs autogen
 
@@ -948,7 +1370,7 @@ local function draw(cells, solutions)
 	end
 end
 
-local function main()
+local function SolveGridPuzzle()
 	if _G.IsDrawing then
 		return
 	end
@@ -974,650 +1396,1511 @@ local function main()
 	_G.IsDrawing = false
 end
 
--- end of acidzs autogen
+-- acid AutoBlock
+local lcc = 0
+local lsc = 0
 
--- ui shit
-local function AddElement(element, section)
-	local data = {
-		Element = element,
-		Section = section,
-		ZIndex = element.ZIndex
-	}
+local SWING_BLACKLIST = {}
 
-	data.Offset = element.Position - section.Position
-	table.insert(section.Elements, data)
+local sin, cos = math.sin, math.cos
+local abs, sqrt = math.abs, math.sqrt
+local v3new = Vector3.new
 
-	table.insert(UIElements, data)
+local Scheduler = {
+	tasks = {}
+}
+
+function Scheduler.spawn(fn)
+	local co = coroutine.create(fn)
+	Scheduler.tasks[#Scheduler.tasks + 1] = co
+	return co
 end
 
-local function CreateSection(name, position, size, color)
-	local section = {
-		Name = name,
-		Position = position,
+function Scheduler.stp()
+	for i = #Scheduler.tasks, 1, -1 do
+		local co = Scheduler.tasks[i]
+		local ok, cont = coroutine.resume(co)
+		if not ok or cont == false then
+			table.remove(Scheduler.tasks, i)
+		end
+	end
+end
+
+local function gettime()
+	return os.clock()
+end
+
+local rotationCache = {}
+
+local function gcr(rot, timestamp)
+	-- Use simple concatenation instead of string.format
+	local key = rot.Yaw .. "_" .. rot.Pitch .. "_" .. rot.Roll
+	local cached = rotationCache[key]
+	if cached and (timestamp - cached.time) < 0.1 then
+		return cached.matrices
+	end
+
+	local cy, sy = cos(rot.Yaw), sin(rot.Yaw)
+	local cp, sp = cos(rot.Pitch), sin(rot.Pitch)
+	local cr, sr = cos(rot.Roll), sin(rot.Roll)
+
+	local matrices = {
+		m00 = cy * cr + sy * sp * sr,
+		m01 = sr * cp,
+		m02 = -sy * cr + cy * sp * sr,
+		m10 = -cy * sr + sy * sp * cr,
+		m11 = cr * cp,
+		m12 = sr * sy + cy * sp * cr,
+		m20 = sy * cp,
+		m21 = -sp,
+		m22 = cy * cp,
+
+		i00 = cy * cr + sy * sp * sr,
+		i01 = -cy * sr + sy * sp * cr,
+		i02 = sy * cp,
+		i10 = sr * cp,
+		i11 = cr * cp,
+		i12 = -sp,
+		i20 = -sy * cr + cy * sp * sr,
+		i21 = sr * sy + cy * sp * cr,
+		i22 = cy * cp
+	}
+
+	rotationCache[key] = {
+		matrices = matrices,
+		time = timestamp
+	}
+	return matrices
+end
+
+local function get_rotation_matrix(m)
+	return m.m00, m.m01, m.m02, m.m10, m.m11, m.m12, m.m20, m.m21, m.m22
+end
+
+local function get_inverse_matrix(m)
+	return m.i00, m.i01, m.i02, m.i10, m.i11, m.i12, m.i20, m.i21, m.i22
+end
+
+-- AFTER:
+local function rotate_vec_inline(x, y, z, m)
+	return x * m.m00 + y * m.m01 + z * m.m02, x * m.m10 + y * m.m11 + z * m.m12, x * m.m20 + y * m.m21 + z * m.m22
+end
+local function gbc3d(originX, originY, originZ, offsetX, offsetY, offsetZ, m, halfX, halfY, halfZ)
+
+	local ox, oy, oz = rotate_vec_inline(offsetX, offsetY, -offsetZ, m)
+	local worldOx = originX + ox
+	local worldOy = originY + oy
+	local worldOz = originZ + oz
+
+	local localCorners = {{-halfX, -halfY, -halfZ}, {halfX, -halfY, -halfZ}, {halfX, halfY, -halfZ},
+		{-halfX, halfY, -halfZ}, {-halfX, -halfY, halfZ}, {halfX, -halfY, halfZ},
+		{halfX, halfY, halfZ}, {-halfX, halfY, halfZ}}
+
+	local worldCorners = {}
+	for i, corner in ipairs(localCorners) do
+		local lx, ly, lz = corner[1], corner[2], corner[3]
+		local wx, wy, wz = rotate_vec_inline(lx, ly, lz, m)
+		worldCorners[i] = v3new(worldOx + wx, worldOy + wy, worldOz + wz)
+	end
+
+	return worldCorners
+end
+
+local function inverse_rotate_inline(x, y, z, m)
+	local i00, i01, i02, i10, i11, i12, i20, i21, i22 = get_inverse_matrix(m)
+	return x * i00 + y * i10 + z * i20, x * i01 + y * i11 + z * i21, x * i02 + y * i12 + z * i22
+end
+
+local function pibf(px, py, pz, ox, oy, oz, m, hx, hy, hz)
+	local rx, ry, rz = px - ox, py - oy, pz - oz
+
+	local i00, i01, i02 = m.i00, m.i01, m.i02
+	local i10, i11, i12 = m.i10, m.i11, m.i12
+	local i20, i21, i22 = m.i20, m.i21, m.i22
+
+	local lx = rx * i00 + ry * i10 + rz * i20
+	local ly = rx * i01 + ry * i11 + rz * i21
+	local lz = rx * i02 + ry * i12 + rz * i22
+
+	return abs(lx) <= hx and abs(ly) <= hy and abs(lz) <= hz
+end
+
+local kswgs = {
+	['JohnDoe'] = {'rbxassetid://140242176732868', 'rbxassetid://81702359653578', 'rbxassetid://86174610237192',
+		'rbxassetid://131123355704017', 'rbxassetid://106836941416453'},
+	['Slasher'] = {'rbxassetid://112809109188560', 'rbxassetid://102228729296384', 'rbxassetid://12222216',
+		'rbxassetid://108907358619313', 'rbxassetid://127793641088496', 'rbxassetid://116581754553533',
+		'rbxassetid://86833981571073', 'rbxassetid://110372418055226', 'rbxassetid://105840448036441',
+		'rbxassetid://86494585504534', 'rbxassetid://124903763333174'},
+	['1x1x1x1'] = {'rbxassetid://117173212095661', 'rbxassetid://121954639447247', 'rbxassetid://115026634746636',
+		'rbxassetid://109431876587852', 'rbxassetid://119942598489800', 'rbxassetid://85853080745515',
+		'rbxassetid://119089145505438', 'rbxassetid://95079963655241', 'rbxassetid://128856426573270',
+		'rbxassetid://98111231282218'},
+	['c00lkidd'] = {'rbxassetid://106776364623742', 'rbxassetid://18885909645', 'rbxassetid://80516583309685',
+		'rbxassetid://82221759983649', 'rbxassetid://97167027849946', 'rbxassetid://84307400688050',
+		'rbxassetid://127846074966393', 'rbxassetid://75330693422988', 'rbxassetid://128195973631079'},
+	['Noli'] = {'rbxassetid://109348678063422', 'rbxassetid://131406927389838', 'rbxassetid://106300477136129',
+		'rbxassetid://106300477136129', 'rbxassetid://77893377257526', 'rbxassetid://131406927389838',
+		'rbxassetid://108610718831698', 'rbxassetid://114742322778642', 'rbxassetid://112395455254818',
+		'rbxassetid://136323728355613', 'rbxassetid://89004992452376', 'rbxassetid://140659146085461',
+		'rbxassetid://128367348686124'},
+	['Sixer'] = {'rbxassetid://119583605486352', 'rbxassetid://137719096698985', 'rbxassetid://79980897195554',
+		'rbxassetid://128414736976503', 'rbxassetid://117231507259853', 'rbxassetid://101698569375359',
+		'rbxassetid://101553872555606', 'rbxassetid://71805956520207', 'rbxassetid://125213046326879',
+		'rbxassetid://78298577002481', "rbxassetid://127557531826290", "rbxassetid://108651070773439",
+		"rbxassetid://74842815979546"},
+	['Nosferatu'] = {'rbxassetid://104910828105172'}
+}
+
+-- > IM GONNA KMS OHMYGODDDDDDD
+local kanims = {
+	['JohnDoe'] = {},
+	['Slasher'] = {},
+	['1x1x1x1'] = {},
+	['c00lkidd'] = {},
+	['Noli'] = {},
+	['Sixer'] = {},
+	['Nosferatu'] = {}
+}
+
+local kcfgs = {
+	['1x1x1x1'] = {
+		SlashWindup = 0.35,
+		SlashLinger = 0.3,
+		SlashSize = Vector3.new(4.5, 6, 7.5),
+		SlashOffset = Vector3.new(0, 0, -1.75)
+	},
+	['c00lkidd'] = {
+		SlashWindup = 0,
+		SlashLinger = 0.3,
+		SlashSize = Vector3.new(4.5, 6, 5),
+		SlashOffset = Vector3.new(0, 0, -2)
+	},
+	['JohnDoe'] = {
+		SlashWindup = 0.4,
+		SlashLinger = 0.3,
+		SlashSize = Vector3.new(4.5, 6, 7.5),
+		SlashOffset = Vector3.new(0, 0, -1.75)
+	},
+	['Noli'] = {
+		SlashWindup = 0.35,
+		SlashLinger = 0.3,
+		SlashSize = Vector3.new(4.5, 6, 7.5),
+		SlashOffset = Vector3.new(0, 0, -2.25)
+	},
+	['Nosferatu'] = {
+		SlashWindup = 0.3,
+		SlashLinger = 0.3,
+		SlashSize = Vector3.new(4.5, 6, 7.5),
+		SlashOffset = Vector3.new(0, 0, -2.25)
+	},
+	['Sixer'] = {
+		SlashWindup = 0.1,
+		SlashLinger = 0.3,
+		SlashSize = Vector3.new(5, 7, 7.25),
+		SlashOffset = Vector3.new(0, -1, -4.85)
+	},
+	['Slasher'] = {
+		SlashWindup = 0.2,
+		SlashLinger = 0.3,
+		SlashSize = Vector3.new(4.5, 6, 7.5),
+		SlashOffset = Vector3.new(0, 0, -1.79)
+	}
+}
+
+local OFFSETS = {
+	SoundId = nil,
+	Primitive = nil
+}
+
+local function gsid(soundInstance)
+	return soundInstance.Name
+end
+
+local asin, atan2, pi, sqrt = math.asin, math.atan2, math.pi, math.sqrt
+
+local function cfr_(hrp)
+	local look = hrp.LookVector
+	local right = hrp.RightVector
+	local up = hrp.UpVector
+
+	local yaw = atan2(look.X, look.Z) + pi
+	local pitch = asin(look.Y)
+	local roll = atan2(up.X, up.Y)
+
+	return {
+		Yaw = yaw,
+		Pitch = pitch,
+		Roll = roll
+	}
+end
+
+local function cframe_to_euler(hrp)
+	local ok, rot = pcall(cfr_, hrp)
+	if ok and rot then
+		return rot
+	end
+	return {
+		Yaw = 0,
+		Pitch = 0,
+		Roll = 0
+	}
+end
+
+-- Simplified rotation matrix getter - uses cache directly
+local function grm(rot, timestamp, vb)
+	if abs(rot.Yaw - vb.lastRotYaw) < 0.0001 and abs(rot.Pitch - vb.lastRotPitch) < 0.0001 and
+		abs(rot.Roll - vb.lastRotRoll) < 0.0001 and vb.lastMatrix then
+		return vb.lastMatrix
+	end
+
+	-- Use simple concatenation instead of string.format
+	local key = rot.Yaw .. "_" .. rot.Pitch .. "_" .. rot.Roll
+	local cached = rotationCache[key]
+	if cached and (timestamp - cached.time) < 0.1 then
+		vb.lastMatrix = cached.matrices
+		vb.lastRotYaw = rot.Yaw
+		vb.lastRotPitch = rot.Pitch
+		vb.lastRotRoll = rot.Roll
+		return cached.matrices
+	end
+
+	local cy, sy = cos(rot.Yaw), sin(rot.Yaw)
+	local cp, sp = cos(rot.Pitch), sin(rot.Pitch)
+	local cr, sr = cos(rot.Roll), sin(rot.Roll)
+
+	local matrices = {
+		m00 = cy * cr + sy * sp * sr,
+		m01 = sr * cp,
+		m02 = -sy * cr + cy * sp * sr,
+		m10 = -cy * sr + sy * sp * cr,
+		m11 = cr * cp,
+		m12 = sr * sy + cy * sp * cr,
+		m20 = sy * cp,
+		m21 = -sp,
+		m22 = cy * cp,
+
+		i00 = cy * cr + sy * sp * sr,
+		i01 = -cy * sr + sy * sp * cr,
+		i02 = sy * cp,
+		i10 = sr * cp,
+		i11 = cr * cp,
+		i12 = -sp,
+		i20 = -sy * cr + cy * sp * sr,
+		i21 = sr * sy + cy * sp * cr,
+		i22 = cy * cp
+	}
+
+	rotationCache[key] = {
+		matrices = matrices,
+		time = timestamp
+	}
+	vb.lastMatrix = matrices
+	vb.lastRotYaw = rot.Yaw
+	vb.lastRotPitch = rot.Pitch
+	vb.lastRotRoll = rot.Roll
+	return matrices
+end
+
+local vbh = {}
+vbh.__index = vbh
+
+function vbh.new(origin_pos, origin_rot, offset, size, linger)
+	return setmetatable({
+		OriginX = origin_pos.X,
+		OriginY = origin_pos.Y,
+		OriginZ = origin_pos.Z,
+		OriginRot = {
+			Yaw = origin_rot.Yaw or 0,
+			Pitch = origin_rot.Pitch or 0,
+			Roll = origin_rot.Roll or 0
+		},
+		OffsetX = offset.X,
+		OffsetY = offset.Y,
+		OffsetZ = offset.Z,
+		HalfX = size.X * 0.5,
+		HalfY = size.Y * 0.5,
+		HalfZ = size.Z * 0.5,
 		Size = size,
-		Color = color or Color3.fromRGB(30, 30, 30),
-		Elements = {},
-		DragOffset = Vector2.new(0, 0),
-		IsDragging = false,
-		IsOnTop = false,
-		sectionN = #Sections
+		Linger = linger or 0.1,
+		Time = 0,
+		Active = true,
+
+		lastRotYaw = 1e9,
+		lastRotPitch = 1e9,
+		lastRotRoll = 1e9,
+		lastMatrix = nil,
+		lastPosX = 1e9,
+		lastPosY = 1e9,
+		lastPosZ = 1e9
+	}, vbh)
+end
+
+function vbh:hb(playerCharacter, killerCharacter, predictionTime, killerVelocity)
+	if not self.Active or not playerCharacter then
+		return false
+	end
+
+	predictionTime = predictionTime or 1.9
+	killerVelocity = killerVelocity or Vector3.new(0, 0, 0)
+	local now = gettime()
+	local m = grm(self.OriginRot, now, self)
+	local ox, oy, oz = rotate_vec_inline(self.OffsetX, self.OffsetY, -self.OffsetZ, m)
+	local baseX, baseY, baseZ = self.OriginX + ox, self.OriginY + oy, self.OriginZ + oz
+	local hx, hy, hz = self.HalfX, self.HalfY, self.HalfZ
+	local predX, predY, predZ = baseX, baseY, baseZ
+	if predictionTime > 0 then
+		local vx, vy, vz = killerVelocity.X, killerVelocity.Y, killerVelocity.Z
+		local mag = vx * vx + vy * vy + vz * vz
+		if mag > 0.01 then
+			predX = predX + vx * 0.16
+			predY = predY + vy * 0.1
+			predZ = predZ + vz * 0.142
+		end
+	end
+	local predHx, predHy, predHz = self.HalfX + 0.2, self.HalfY, self.HalfZ + 1.12
+	for _, name in ipairs {"Head", "Torso", "Left Arm", "Right Arm", "Left Leg", "Right Leg"} do
+		local part = playerCharacter:FindFirstChild(name)
+		if part and part.Position then
+			local pos = part.Position
+			if pibf(pos.X, pos.Y, pos.Z, baseX, baseY, baseZ, m, hx, hy, hz) then
+				return true
+			end
+			if pibf(pos.X, pos.Y, pos.Z, predX, predY, predZ, m, predHx, predHy, predHz) then
+				return true
+			end
+		end
+	end
+
+	return false
+end
+
+function vbh:stp(dt)
+	if not self.Active then
+		return false
+	end
+	self.Time = self.Time + (dt or 0)
+	if self.Time >= self.Linger then
+		self.Active = false
+		return false
+	end
+	return true
+end
+
+function vbh:updp(x, y, z)
+	self.OriginX = x
+	self.OriginY = y
+	self.OriginZ = z
+end
+
+function vbh:updr(rot)
+	self.OriginRot = rot
+end
+
+local ap = {}
+ap.__index = ap
+
+function ap.new()
+	local self = setmetatable({}, ap)
+	self.isActive = false
+	self.lastParryTime = 0
+	self.attackstates = {}
+	self.swingBlacklist = {}
+	self.lastSweepTime = gettime()
+	self.positionHistory = {}
+	return self
+end
+
+function ap:sc()
+	if not game.Workspace:FindFirstChild('Map') then
+		print('Acid AutoBlock: Sanity check failed: No Map in Workspace')
+		return false
+	end
+	return true
+end
+
+-- Simplified velocity calculation
+function ap:gkv(killer)
+	if not killer or not killer:FindFirstChild("HumanoidRootPart") then
+		return Vector3.new(0, 0, 0)
+	end
+
+	local key = killer.Address
+	if not key then
+		return Vector3.new(0, 0, 0)
+	end
+
+	if not self.positionHistory[key] then
+		self.positionHistory[key] = {
+			positions = {},
+			lastUpdate = 0,
+			lastVelocity = {
+				x = 0,
+				y = 0,
+				z = 0
+			}
+		}
+	end
+
+	local history = self.positionHistory[key]
+	local currentTime = gettime()
+	local hrp = killer.HumanoidRootPart
+
+	local pos = hrp.Position
+	if not pos then
+		return Vector3.new(history.lastVelocity.x, history.lastVelocity.y, history.lastVelocity.z)
+	end
+
+	if currentTime - history.lastUpdate >= 0.0016 then
+		table.insert(history.positions, {
+			x = pos.X,
+			y = pos.Y,
+			z = pos.Z,
+			time = currentTime
+		})
+		history.lastUpdate = currentTime
+
+		while #history.positions > 6 do
+			table.remove(history.positions, 1)
+		end
+	end
+
+	if #history.positions < 2 then
+		return Vector3.new(history.lastVelocity.x, history.lastVelocity.y, history.lastVelocity.z)
+	end
+
+	local oldest = history.positions[1]
+	local newest = history.positions[#history.positions]
+	local dt = newest.time - oldest.time
+
+	if dt <= 0.005 then
+		return Vector3.new(history.lastVelocity.x, history.lastVelocity.y, history.lastVelocity.z)
+	end
+
+	local dx = newest.x - oldest.x
+	local dy = newest.y - oldest.y
+	local dz = newest.z - oldest.z
+
+	local vx = dx / dt
+	local vy = dy / dt
+	local vz = dz / dt
+
+	local alpha = 0.35
+	history.lastVelocity.x = history.lastVelocity.x * (1 - alpha) + vx * alpha
+	history.lastVelocity.y = history.lastVelocity.y * (1 - alpha) + vy * alpha
+	history.lastVelocity.z = history.lastVelocity.z * (1 - alpha) + vz * alpha
+
+	return Vector3.new(history.lastVelocity.x, history.lastVelocity.y, history.lastVelocity.z)
+end
+
+-- Optimized sound search - use direct child lookup instead of GetChildren iteration
+function ap:fass(killer, swingIds)
+	if not swingIds or not killer or not killer:FindFirstChild("HumanoidRootPart") then
+		return nil
+	end
+
+	local hrp = killer.HumanoidRootPart
+
+	for _, swingId in pairs(swingIds) do
+		-- Direct lookup by name (assuming sound names match swingIds)
+		local sound = hrp:FindFirstChild(swingId)
+
+		if sound and sound:IsA("Sound") then
+			local soundId = gsid(sound)
+			if tostring(soundId) == tostring(swingId) then
+				local idkey = sound.Address and tostring(sound.Address) or tostring(sound)
+				if not SWING_BLACKLIST[idkey] then
+					return sound
+				end
+			end
+		end
+	end
+
+	return nil
+end
+
+function ap:cvbh(killer, killerName)
+	local apconfig = kcfgs[killerName] or {
+		SlashSize = Vector3.new(4.5, 6, 7.5),
+		SlashOffset = Vector3.new(0, 0, -1.25),
+		SlashLinger = 0.25
 	}
 
-	section.DragArea = Drawing.new("Square")
-	section.DragArea.ZIndex = 5
-	section.DragArea.Size = size
-	section.DragArea.Position = position
-	section.DragArea.Color = section.Color
-	section.DragArea.Filled = true
+	local hrp = killer:FindFirstChild("HumanoidRootPart")
+	if not hrp then
+		return nil
+	end
 
-	section.Border = Drawing.new("Square")
-	section.Border.ZIndex = 4
-	section.Border.Size = size + Vector2.new(4, 4)
-	section.Border.Position = position - Vector2.new(2, 2)
-	section.Border.Color = Color3.fromRGB(255, 255, 255)
-	section.Border.Filled = true
+	-- Remove pcall for simple property access
+	local position = hrp.Position or v3new(0, 0, 0)
+	local rot = cframe_to_euler(hrp)
 
-	section.Title = Drawing.new("Text")
-	section.Title.Font = Drawing.Fonts.System
-	section.Title.ZIndex = 6
-	section.Title.Position = position + Vector2.new(5, 4)
-	section.Title.Color = Color3.fromRGB(255, 255, 255)
-	section.Outline = false
-	section.Title.Text = name
-
-	section.BorderLine = Drawing.new("Square")
-	section.BorderLine.ZIndex = 6
-	section.BorderLine.Size = Vector2.new(size.X - 6, 2)
-	section.BorderLine.Position = position + Vector2.new(3, 22)
-	section.BorderLine.Color = Color3.fromRGB(255, 255, 255)
-	section.BorderLine.Filled = true
-
-	table.insert(Sections, section)
-
-	AddElement(section.Border, section)
-	AddElement(section.Title, section)
-	AddElement(section.DragArea, section)
-	AddElement(section.BorderLine, section)
-
-	return section
+	return vbh.new(position, rot, apconfig.SlashOffset, apconfig.SlashSize, apconfig.SlashLinger)
 end
 
-local function CreateCheckbox(text:string, var:boolean, pos:Vector2, varname, section)
+function ap:uas()
+	if not self:sc() then
+		return
+	end
 
-	local adjustedPos = section.Position + pos
+	local killersfolder = game.Workspace:FindFirstChild('Players')
+	if killersfolder then
+		killersfolder = killersfolder:FindFirstChild('Killers')
+	end
+	if not killersfolder then
+		return print('Acid AutoBlock: No Killers folder found in Workspace.Players')
+	end
 
-	local CheckboxContainerBackground = Drawing.new("Square")
-	CheckboxContainerBackground.ZIndex = 9
-	CheckboxContainerBackground.Size = Vector2.new(190, 21)
-	CheckboxContainerBackground.Position = adjustedPos
-	CheckboxContainerBackground.Color = Color3.fromRGB(0, 0, 0)
-	CheckboxContainerBackground.Filled = true
+	local existingkillers = {}
+	for _, killer in pairs(killersfolder:GetChildren()) do
+		if killer:IsA("Model") then
+			existingkillers[killer.Name] = true
+		end
+	end
+	for killerName in pairs(self.attackstates) do
+		if not existingkillers[killerName] then
+			local state = self.attackstates[killerName]
 
-	local CheckboxContainerBackgroundOutline = Drawing.new("Square")
-	CheckboxContainerBackgroundOutline.ZIndex = 8
-	CheckboxContainerBackgroundOutline.Size = Vector2.new(192, 23)
-	CheckboxContainerBackgroundOutline.Position = adjustedPos - Vector2.new(1, 1)
-	CheckboxContainerBackgroundOutline.Color = Color3.fromRGB(255, 255, 255)
-	CheckboxContainerBackgroundOutline.Filled = true
+			local killerAddr = state.killer and state.killer.Address
 
-	local CheckboxBackground = Drawing.new("Square")
-	CheckboxBackground.ZIndex = 10
-	CheckboxBackground.Size = Vector2.new(15, 15)
-	CheckboxBackground.Position = adjustedPos + Vector2.new(172, 3)
-	CheckboxBackground.Color = Color3.fromRGB(255, 255, 255)
-	CheckboxBackground.Filled = true
+			if state.hitbox then
+				state.hitbox.Active = false
+				state.hitbox = nil
+			end
 
-	local CheckboxVisible = Drawing.new("Square")
-	CheckboxVisible.ZIndex = 11
-	CheckboxVisible.Size = Vector2.new(13, 13)
-	CheckboxVisible.Position = adjustedPos + Vector2.new(173, 4)
-	if var == true then
-		CheckboxVisible.Color = Color3.fromRGB(0, 255, 0)
+			state.isAttacking = false
+
+			self.attackstates[killerName] = nil
+
+			if killerAddr and self.positionHistory[killerAddr] then
+				self.positionHistory[killerAddr] = nil
+			end
+		end
+	end
+
+	for _, killer in pairs(killersfolder:GetChildren()) do
+		(function()
+			if not killer:IsA("Model") or not killer:FindFirstChild("HumanoidRootPart") then
+				return
+			end
+
+			local killerName = killer.Name
+			local swingIds = kswgs[killerName]
+			if not swingIds then
+				return
+			end
+
+			local state = self.attackstates[killerName]
+			if not state then
+				state = {
+					isAttacking = false,
+					swingInstance = nil,
+					startTime = nil,
+					shouldParry = false,
+					hitbox = nil,
+					killer = killer,
+					processedSwings = {}
+				}
+				self.attackstates[killerName] = state
+			end
+
+			local activeSwing = self:fass(killer, swingIds)
+			state.killer = killer
+
+			if activeSwing and not state.isAttacking then
+				local swingAddress = tostring(activeSwing.Address)
+				if state.processedSwings[swingAddress] then
+					return
+				end
+
+				state.isAttacking = true
+				state.swingInstance = activeSwing
+				state.startTime = gettime()
+				state.shouldParry = false
+				state.hitbox = nil
+
+				state.processedSwings[swingAddress] = true
+
+				local apconfig = kcfgs[killerName] or {}
+				local slashWindup = apconfig.SlashWindup or 0
+				local slashLinger = apconfig.SlashLinger or 0.25
+				local parryPreemption = config["ParryPreemption"] or 0.0
+				local maxSwingDuration = config["MaxSwingDuration"] or 0
+
+				local windup = math.max(slashWindup -
+					(killerName ~= 'c00lkidd' and killerName ~= 'Sixer' and parryPreemption or 1),
+					0)
+				local waitTime = math.max(windup - 0.02, 0)
+
+				Scheduler.spawn(function()
+					local startWait = gettime()
+					while gettime() - startWait < waitTime do
+						coroutine.yield()
+					end
+
+					local hitbox = self:cvbh(killer, killerName)
+					if not hitbox then
+						return
+					end
+
+					state.hitbox = hitbox
+					hitbox.Time = 0
+					hitbox.Linger = slashLinger
+
+					-- Consolidated position update loop
+					while state.isAttacking and state.hitbox and self.isActive do
+						local hrp = killer:FindFirstChild("HumanoidRootPart")
+						if hrp then
+							-- Remove pcall for simple property access
+							local pos = hrp.Position
+							local rot = cframe_to_euler(hrp)
+							if pos and rot then
+								hitbox:updp(pos.X, pos.Y, pos.Z)
+								hitbox:updr(rot)
+							end
+						end
+
+						if not hitbox:stp(0.016) then
+							state.hitbox = nil
+							break
+						end
+
+						local velocity = self:gkv(state.killer)
+						-- Remove pcall for hitbox check
+						local hb = state.hitbox:hb(player.Character, killer, config["PredictionWindow"], velocity)
+
+						if hb then
+							state.shouldParry = true
+							break
+						end
+
+						coroutine.yield()
+					end
+				end)
+
+			elseif not activeSwing and state.isAttacking then
+				if state.swingInstance then
+					local identifier = state.swingInstance.Address and tostring(state.swingInstance.Address) or
+						tostring(state.swingInstance)
+					self.swingBlacklist[identifier] = gettime()
+				end
+				state.isAttacking = false
+				state.swingInstance = nil
+				state.startTime = nil
+				state.shouldParry = false
+				state.hitbox = nil
+				state.processedSwings = {}
+
+			elseif activeSwing and state.isAttacking then
+				local elapsed = gettime() - (state.startTime or 0)
+				if elapsed > config["MaxSwingDuration"] then
+					state.isAttacking = false
+					state.swingInstance = nil
+					state.startTime = nil
+					state.shouldParry = false
+					state.hitbox = nil
+				end
+			end
+		end)()
+	end
+end
+
+function ap:spak()
+	for killerName, state in pairs(self.attackstates) do
+		if state.isAttacking and state.shouldParry then
+			return true, killerName
+		end
+	end
+	return false, nil
+end
+
+function ap:p()
+	local currentTime = gettime()
+	if currentTime - self.lastParryTime < config["ParryCooldown"] then
+		return false
+	end
+
+	keypress(config["Keybind_Block"])
+
+	self.lastParryTime = currentTime
+	return true
+end
+
+function ap:cbl()
+	local now = gettime()
+	if now - self.lastSweepTime > config["SwingBlacklistSweepInterval"] then
+		local count = 0
+		for key, timestamp in pairs(self.swingBlacklist) do
+			if now - timestamp > config["SwingBlacklistMaxAge"] then
+				self.swingBlacklist[key] = nil
+			else
+				count = count + 1
+			end
+		end
+
+		if count > 100 then
+			local entries = {}
+			for key, timestamp in pairs(self.swingBlacklist) do
+				table.insert(entries, {
+					key = key,
+					time = timestamp
+				})
+			end
+			table.sort(entries, function(a, b)
+				return a.time < b.time
+			end)
+
+			for i = 1, #entries - 50 do
+				self.swingBlacklist[entries[i].key] = nil
+			end
+		end
+
+		self.lastSweepTime = now
+	end
+end
+
+function ap:stp()
+	if not self.isActive or not self:sc() then
+		return false
+	end
+	self:cbl()
+
+	local now = gettime()
+	if now - lsc > 10 then
+		for i = #Scheduler.tasks, 1, -1 do
+			local co = Scheduler.tasks[i]
+			if coroutine.status(co) == "dead" then
+				table.remove(Scheduler.tasks, i)
+			end
+		end
+		lsc = now
+	end
+	self:uas()
+	local shouldParry, killerName = self:spak()
+	if shouldParry then
+		local success = self:p()
+		return success
+	end
+	return false
+end
+
+function ap:Start()
+	if self.isActive then
+		return
+	end
+	self.isActive = true
+	self.attackstates = {}
+end
+
+function ap:Stop()
+	if not self.isActive then
+		return
+	end
+	self.isActive = false
+	self.attackstates = {}
+end
+
+local ps = ap.new()
+
+
+local function abInit()
+	ps:Start()
+	print('Acid AutoBlock: Prediction Window:', config["PredictionWindow"], 's')
+	print('Acid AutoBlock: Parry Preemption:', config["ParryPreemption"], 's')
+	print('Acid AutoBlock: made by mildilyacidic')
+end
+
+local function abOnUpdate()
+	Scheduler.stp()
+
+	local now = gettime()
+	if true then
+		ps:stp()
+
+		if now - lcc > 5 then
+			local oldTime = now - 0.5
+			for key, cached in pairs(rotationCache) do
+				if cached.time < oldTime then
+					rotationCache[key] = nil
+				end
+			end
+			lcc = now
+		end
 	else
-		CheckboxVisible.Color = Color3.fromRGB(255, 0, 0)
-	end
-	CheckboxVisible.Filled = true
-
-	local CheckboxText = Drawing.new("Text")
-	CheckboxText.Font = Drawing.Fonts.System
-	CheckboxText.ZIndex = 11
-	CheckboxText.Position = adjustedPos + Vector2.new(5, 3)
-	CheckboxText.Color = Color3.fromRGB(255, 255, 255)
-	CheckboxText.Text = text
-	CheckboxText.Outline = false
-
-	AddElement(CheckboxContainerBackground, section)
-	AddElement(CheckboxContainerBackgroundOutline, section)
-	AddElement(CheckboxBackground, section)
-	AddElement(CheckboxVisible, section)
-	AddElement(CheckboxText, section)
-
-	local Button = {}
-	Button.Box = CheckboxContainerBackground
-	Button.Checkbox = CheckboxVisible
-	Button.Variable = var
-	Button.Section = section
-	Button.VarName = varname
-	Button.Type = "Checkbox"
-
-	table.insert(Buttons, Button)
-end
-
-local function CreateSlider(text:string, var:number, varname:string , steps:number, totalSteps:number, pos:Vector2, section)
-
-	local adjustedPos = section.Position + pos -- 105, 147
-
-	local SliderOutline = Drawing.new("Square")
-	SliderOutline.ZIndex = 10
-	SliderOutline.Size = Vector2.new(180,15)
-	SliderOutline.Position = adjustedPos + Vector2.new(5,23)
-	SliderOutline.Color = Color3.fromRGB(255,255,255)
-	SliderOutline.Filled = true
-
-	local SliderContainerBackground = Drawing.new("Square")
-	SliderContainerBackground.ZIndex = 9
-	SliderContainerBackground.Size = Vector2.new(190,44)
-	SliderContainerBackground.Position = adjustedPos
-	SliderContainerBackground.Color = Color3.fromRGB(0,0,0)
-	SliderContainerBackground.Filled = true
-
-	local SliderContainerBackgroundOutline = Drawing.new("Square")
-	SliderContainerBackgroundOutline.ZIndex = 8
-	SliderContainerBackgroundOutline.Size = Vector2.new(192,46)
-	SliderContainerBackgroundOutline.Position = adjustedPos - Vector2.new(1,1)
-	SliderContainerBackgroundOutline.Color = Color3.fromRGB(255,255,255)
-	SliderContainerBackgroundOutline.Filled = true
-
-	local SliderTitle = Drawing.new("Text")
-	SliderTitle.Font = Drawing.Fonts.System
-	SliderTitle.ZIndex = 11
-	SliderTitle.Position = adjustedPos + Vector2.new(5,3)
-	SliderTitle.Color = Color3.fromRGB(255,255,255)
-	SliderTitle.Text = text
-	SliderTitle.Outline = false
-
-	local SliderBackground = Drawing.new("Square")
-	SliderBackground.ZIndex = 11
-	SliderBackground.Size = Vector2.new(178,13)
-	SliderBackground.Position = adjustedPos + Vector2.new(6,24)
-	SliderBackground.Color = Color3.fromRGB(0,0,0)
-	SliderBackground.Filled = true
-
-	local Slider = Drawing.new("Square")
-	Slider.ZIndex = 12
-	Slider.Size = Vector2.new(176,11)
-	Slider.Position = adjustedPos + Vector2.new(7,25)
-	Slider.Color = Color3.fromRGB(255,255,255)
-	Slider.Filled = true
-
-	local SliderValue = Drawing.new("Text")
-	SliderValue.Font = Drawing.Fonts.System
-	SliderValue.ZIndex = 11
-	SliderValue.Center = true
-	SliderValue.Position = adjustedPos + Vector2.new(165,11)
-	SliderValue.Color = Color3.fromRGB(255,255,255)
-	SliderValue.Text = var
-
-	AddElement(SliderOutline, section)
-	AddElement(SliderContainerBackground, section)
-	AddElement(SliderContainerBackgroundOutline, section)
-	AddElement(SliderTitle, section)
-	AddElement(SliderBackground, section)
-	AddElement(Slider, section)
-	AddElement(SliderValue, section)
-
-	local Button = {}
-	Button.Box = SliderBackground
-	Button.Slider = Slider
-	Button.totalSteps = totalSteps
-	Button.varname = varname
-	Button.Section = section
-	Button.varText = SliderValue
-	Button.steps = steps or 0.05
-	Button.Type = "Slider"
-
-	table.insert(Buttons, Button)
-
-	do -- make the slider match the current value
-		local maxVal = tonumber(totalSteps) or 1
-		if maxVal <= 0 then maxVal = 1 end
-		local fraction = math.clamp((var or 0) / maxVal, 0, 1)
-		local fullWidth = SliderBackground.Size.X - 2
-		local initialWidth = math.max(1, math.floor(fullWidth * fraction + 0.5))
-		Slider.Size = Vector2.new(initialWidth, Slider.Size.Y)
-		Slider.Position = Vector2.new(SliderBackground.Position.X + 1, Slider.Position.Y)
-		SliderValue.Text = tostring(var)
+		rotationCache = {}
+		ps.positionHistory = {}
 	end
 end
 
-local function CreateHeader(text:string, pos:Vector2, section)
-
-	local adjustedPos = section.Position + pos
-
-	local HeaderText = Drawing.new("Text")
-	HeaderText.Font = Drawing.Fonts.System
-	HeaderText.ZIndex = 11
-	HeaderText.Position = adjustedPos
-	HeaderText.Color = Color3.fromRGB(255, 255, 255)
-	HeaderText.Text = text
-
-	AddElement(HeaderText, section)
+local function abStop()
+	ps:Stop()
+	print("Acid AutoBlock: killed autoblock")
 end
 
-local function CheckEnabled(text)
-	for keyword, varname in pairs(textLookup) do
-		if string.find(text, keyword) and Config[varname] then
-			return true
+
+
+local partWhitelist = {
+	-- CHARACTERs
+	"Right Arm", 
+	"Left Arm", 
+	"Head", 
+	"Torso", 
+	"Right Leg", 
+	"Left Leg", 
+	"HumanoidRootPart", 
+	"Waist", 
+	"Left Lowerleg", 
+	"Left Lowleg", 
+	"Left Horn",
+	"Right Foot",
+	"Left Leg",
+	"Right Lowerleg",
+	"Right Horn",
+	"Right Lowleg",
+	"Right Knee",
+	"Right Leg",
+	"Left Foot",
+	"Left Knee",
+	"Body",
+	"Right hand",
+	"Right lowerarm",
+	"Left Hand",
+	"Left lowerarm",
+	"VoidstarCrown",
+	"Puddle",
+	"Shadow",
+
+	-- OBJECTs
+	"SubspaceBox",
+	"ItemRoot",
+	"GraffitiCL",
+	"Hook1",
+	"Hook2",
+	"Wire",
+	"Root",
+
+	-- GENERATORs
+	"Main",
+}
+
+local nameToTitle = {
+	["FakeGenerator"] = "Fake Generator",
+	["GraffitiCl"] = "Graffiti",
+	["TaphTripwire"] = "Tripwire",
+	["SubspaceTripmine"] = "Tripmine",
+	["BloxyCola"] = "Cola",
+	["Medkit"] = "Medkit",
+	["Generator"] = "Generator",
+	["BuildermanSentry"] = "Sentry",
+	["BuildermanDispenser"] = "Dispenser",
+	["RespawnLocation"] = "CUSTOM1",
+	["Shadow"] = "Footprint",
+
+}
+
+local function getNamefromObjectName(name:string)
+	for term, convert in pairs(nameToTitle) do
+		if string.find(name, term) then
+			return convert
+		end
+	end
+	return "None"
+end
+
+local espFuncs = {
+	["Character"] = function(objects, color:Color3, title:string, root)
+		local espBoxMain = Drawing.new("Square")
+		espBoxMain.Color = color
+		espBoxMain.ZIndex = 0
+
+		local espBoxOutlineOut = Drawing.new("Square")
+		espBoxOutlineOut.Color = Color3.fromRGB(0,0,0)
+		espBoxOutlineOut.ZIndex = 0
+
+		local espBoxOutlineIn = Drawing.new("Square")
+		espBoxOutlineIn.Color = Color3.fromRGB(0,0,0)
+		espBoxOutlineIn.ZIndex = 0
+
+		local espTitle = Drawing.new("Text")
+		espTitle.Text = title
+		espTitle.Color = color
+		espTitle.ZIndex = 0
+		espTitle.Font = Drawing.Fonts.System
+		espTitle.Size = 15
+		espTitle.Outline = true
+		espTitle.Center = true
+		
+		local espHealth = Drawing.new("Text")
+		espHealth.Text = "67"
+		espHealth.Color = color
+		espHealth.ZIndex = 0
+		espHealth.Font = Drawing.Fonts.System
+		espHealth.Size = 15
+		espHealth.Outline = true
+		espHealth.Center = true
+
+		table.insert(espDrawings, {
+			uiparts = {
+				main = espBoxMain,
+				outlineOut = espBoxOutlineOut,
+				outlineIn = espBoxOutlineIn,
+				title = espTitle,
+				health = espHealth,
+			},
+			objects = objects,
+			class = "Character",
+			root = root,
+			originalName = root.Name
+		})
+	end,
+
+	["Object"] = function(objects, color:Color3, title:string, root)
+		local espTitle = Drawing.new("Text")
+		espTitle.Text = title
+		espTitle.Color = color
+		espTitle.ZIndex = 0
+		espTitle.Font = Drawing.Fonts.System
+		espTitle.Size = 15
+		espTitle.Outline = true
+		espTitle.Center = true
+		table.insert(espDrawings, {
+			uiparts = {
+				title = espTitle,
+			},
+			objects = objects,
+			class = "Object",
+			root = root,
+			originalName = root.Name
+		})
+	end,
+
+	["Generator"] = function(objects, color:Color3, title:string, root)
+		local espTitle = Drawing.new("Text")
+		espTitle.Text = title
+		espTitle.Color = color
+		espTitle.ZIndex = 0
+		espTitle.Font = Drawing.Fonts.System
+		espTitle.Size = 15
+		espTitle.Outline = true
+		espTitle.Center = true
+
+		local espProgress = Drawing.new("Text")
+		espProgress.Text = "0/4"
+		espProgress.Color = color
+		espProgress.ZIndex = 0
+		espProgress.Font = Drawing.Fonts.System
+		espProgress.Size = 12
+		espProgress.Outline = true
+		espProgress.Center = true
+		table.insert(espDrawings, {
+			uiparts = {
+				title = espTitle,
+				progress = espProgress,
+			},
+			objects = objects,
+			class = "Generator",
+			root = root,
+			originalName = root.Name
+		})
+	end,
+
+	["LineObject"] = function(objects, color:Color3, title:string, root)
+		local espTitle = Drawing.new("Text")
+		espTitle.Text = title
+		espTitle.Color = color
+		espTitle.ZIndex = 0
+		espTitle.Font = Drawing.Fonts.System
+		espTitle.Size = 15
+		espTitle.Outline = true
+		espTitle.Center = true
+
+		local espLine = Drawing.new("Line")
+		espLine.Color = color
+		espLine.ZIndex = 0
+		espLine.Thickness = 2
+
+		local espOutline = Drawing.new("Line")
+		espLine.Color = Color3.fromRGB(0,0,0)
+		espLine.ZIndex = -1
+		espLine.Thickness = 4
+
+		table.insert(espDrawings, {
+			uiparts = {
+				title = espTitle,
+				line = espLine,
+				outline = espOutline,
+			},
+			objects = objects,
+			class = "LineObject",
+			root = root,
+			originalName = root.Name
+		})
+	end,
+
+}
+
+local function updateESPPositions()
+	for i = #espDrawings, 1, -1 do
+		local espData = espDrawings[i]
+		local objectsPositions = {}
+
+		if not espData then continue end
+
+		if not espData.root or not espData.root:IsDescendantOf(game.Workspace) or espData.root.Name ~= espData.originalName then
+			for _, v in pairs(espData.uiparts) do
+				v.Visible = false
+				v:Remove()
+			end
+			table.remove(espDrawings, i)
+			continue
+		end
+
+		for _, object in pairs(espData.objects) do
+			if object and object:IsDescendantOf(game.Workspace) then
+				local objPos = object.Position
+				if objPos then
+					local pos = WorldToScreen(object.Position)
+					if pos.X ~= 0 or pos.Y ~= 0 then
+						table.insert(objectsPositions, pos)
+					end
+				else
+					continue
+				end
+
+			end
+		end
+
+		local cornerTopLeft = Vector2.new(9999, 9999)
+		local cornerBottomRight = Vector2.new(0, 0)
+		for _, position in objectsPositions do
+			if position.X < cornerTopLeft.X then
+				cornerTopLeft = Vector2.new(position.X, cornerTopLeft.Y)
+			end
+			if position.Y < cornerTopLeft.Y then
+				cornerTopLeft = Vector2.new(cornerTopLeft.X, position.Y)
+			end
+			if position.X > cornerBottomRight.X then
+				cornerBottomRight = Vector2.new(position.X, cornerBottomRight.Y)
+			end
+			if position.Y > cornerBottomRight.Y then
+				cornerBottomRight = Vector2.new(cornerBottomRight.X, position.Y)
+			end
+		end
+
+		local function visibleParts()
+			for _, v in pairs(espData.uiparts) do
+				v.Visible = true
+			end
+		end
+
+		local draw = {
+			["Character"] = function()
+				espData.uiparts.main.Position = cornerTopLeft
+				espData.uiparts.main.Size = Vector2.new(cornerBottomRight.X - cornerTopLeft.X, cornerBottomRight.Y - cornerTopLeft.Y)
+				espData.uiparts.outlineOut.Position = cornerTopLeft - Vector2.new(1, 1)
+				espData.uiparts.outlineOut.Size = Vector2.new(cornerBottomRight.X - cornerTopLeft.X, cornerBottomRight.Y - cornerTopLeft.Y) + Vector2.new(2, 2)
+				espData.uiparts.outlineIn.Position = cornerTopLeft + Vector2.new(1, 1)
+				espData.uiparts.outlineIn.Size = Vector2.new(cornerBottomRight.X - cornerTopLeft.X, cornerBottomRight.Y - cornerTopLeft.Y) - Vector2.new(2, 2)
+				espData.uiparts.title.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y - 15)
+				espData.uiparts.health.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerBottomRight.Y + 15)
+				espData.uiparts.health.Text = espData.root.Humanoid.Health .. "/" .. espData.root.Humanoid.MaxHealth .. " HP"
+				visibleParts()
+			end,
+
+			["Object"] = function()
+				espData.uiparts.title.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2)
+				visibleParts()
+			end,
+
+			["Generator"] = function()
+				espData.uiparts.title.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2)
+				espData.uiparts.progress.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2) + Vector2.new(0, 13)
+				if espData.root:FindFirstChild("Progress") then
+					local progress = math.round(espData.root:FindFirstChild("Progress").Value / 100 * 4) .. "/4"
+					if progress == "4/4" then
+						espData.uiparts.progress.Text = "Completed"
+					else
+						espData.uiparts.progress.Text = progress
+					end
+				else
+					espData.uiparts.progress.Text = "0/4"
+				end
+				visibleParts()
+			end,
+
+			["LineObject"] = function()
+				espData.uiparts.title.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2) - Vector2.new(0, 13)
+				local hook1 = espData.root:FindFirstChild("Hook1")
+				local hook2 = espData.root:FindFirstChild("Hook2")
+				if hook1 and hook2 then
+					local Pos1 = WorldToScreen(hook1.Position)
+					local Pos2 = WorldToScreen(hook2.Position)
+					if Pos1.X == 0 or Pos2.X == 0 then 
+						espData.uiparts.line.Visible = false
+						espData.uiparts.outline.Visible = false
+						return
+					else
+						espData.uiparts.line.Visible = true
+						espData.uiparts.outline.Visible = true
+						espData.uiparts.line.From = Pos1
+						espData.uiparts.line.To = Pos2
+						espData.uiparts.outline.From = Pos1
+						espData.uiparts.outline.To = Pos2
+					end
+					visibleParts()
+				end
+			end,
+		}
+
+		if #objectsPositions > 0 then
+
+			draw[espData.class]()
+			local name = getNamefromObjectName(espData.root.Name)
+			if name ~= "None" then
+				if name == "CUSTOM1" then
+					local start = espData.root.Name:find("RespawnLocation")
+					local prefix = espData.root.Name:sub(1, start - 1)
+					name = prefix .. "'s Ritual" 
+					print(name)
+				end
+				espData.uiparts.title.Text = name
+			else
+				if espData and espData.uiparts and not espData.root:FindFirstChild("Humanoid") then
+					for _, drawing in pairs(espData.uiparts) do
+						drawing.Visible = false
+						drawing:Remove()
+					end
+				end
+				espDrawings[espData] = nil
+			end
+			
+		else
+			for _, v in pairs(espData.uiparts) do
+				v.Visible = false
+			end
+		end
+
+	end
+end
+
+local function isAddedToESP(object)
+	for _, item in ipairs(espDrawings) do
+		if item and item.root and item.root.Address == object.Address then
+			if item.originalName == object.Name then
+				return true
+			end
 		end
 	end
 	return false
 end
 
-local function SetValue(name, value)
-	if Config[name] ~= nil then
-		Config[name] = value
+local function espAdd(class:string, title:string, objects, root)
+
+	local cleanobjectlist = {}
+
+	for i, object in objects do
+		if table.find(partWhitelist, object.Name) and (object.ClassName == "MeshPart" or object.ClassName == "Part" or object.ClassName =="UnionOperation") then
+			table.insert(cleanobjectlist, object)
+		end
 	end
+
+	local classes = {
+		["Survivor"] = function()
+			espFuncs["Character"](cleanobjectlist, config["SurvivorColor"], title, root)
+		end,
+
+		["Killer"] = function()
+			espFuncs["Character"](cleanobjectlist, config["KillerColor"], title, root)
+		end,
+
+		["Generator"] = function()
+			espFuncs["Generator"](cleanobjectlist, config["GeneratorColor"], title, root)
+		end,
+
+		["FakeGenerator"] = function()
+			espFuncs["Object"](cleanobjectlist, config["FakeGeneratorColor"], title, root)
+		end,
+
+		["Cola"] = function()
+			espFuncs["Object"](cleanobjectlist, config["BloxyColaColor"], title, root)
+		end,
+
+		["Medkit"] = function()
+			espFuncs["Object"](cleanobjectlist, config["MedkitColor"], title, root)
+		end,
+
+		["VeeGraffiti"] = function()
+			espFuncs["Object"](cleanobjectlist, config["GraffitiColor"], title, root)
+		end,
+
+		["TaphTripmine"] = function()
+			espFuncs["Object"](cleanobjectlist, config["TripmineColor"], title, root)
+		end,
+
+		["TaphTripwire"] = function()
+			espFuncs["LineObject"](cleanobjectlist, config["TripmineColor"], title, root)
+		end,
+
+		["BuildermanSentry"] = function()
+			espFuncs["Object"](cleanobjectlist, config["BuildermanSentry"], title, root)
+		end,
+
+		["BuildermanDispenser"] = function()
+			espFuncs["Object"](cleanobjectlist, config["BuildermanDispenser"], title, root)
+		end,
+		
+		["JDFootprint"] = function()
+			espFuncs["Object"](cleanobjectlist, config["JohnDoeFootprint"], title, root)
+		end,
+		
+		["CKMinion"] = function()
+			espFuncs["Object"](cleanobjectlist, config["CKMinion"], title, root)
+		end,
+		
+		["1xZombie"] = function()
+			espFuncs["Object"](cleanobjectlist, config["1xZombie"], title, root)
+		end,
+		
+		["TwoTimeRespawn"] = function()
+			espFuncs["Object"](cleanobjectlist, config["TwoTimeRespawn"], title, root)
+		end,
+	}
+
+	classes[class]()
 end
 
--- special stuff
-local function twoTimeSpecial(object:Part)
-	local start = object.Name:find("RespawnLocation")
-	local prefix = object.Name:sub(1, start - 1)
-	return prefix .. "'s Ritual" 
-end
+local function addObjects() -- this is so messy but it works so I Don't Care!
 
-local function veeronicaSpecial(object:Model)
-	local start = object.Name:find("Spray")
-	local prefix = object.Name:sub(1, start - 1)
-	
-	if prefix == game.Players.LocalPlayer.Name then
-		return "Your Graffiti" 
-	else
-		return prefix .. "'s Graffiti" 
+	local map = game.Workspace.Map.Ingame:FindFirstChild("Map")
+
+	if not map then
+		cleanup()
+		return
 	end
-	
-	
-end
 
-local function addObjects(v)
-	for _, entry in ipairs(getSortedESPObjectsByNameLength()) do
-		local objName = entry.name
-		local objData = entry.data
-		if string.find(v.Name, objName) and v:IsA(objData.Type) and not table.find(TempObjects, v.Address) and game.Workspace.Map.Ingame:FindFirstChild("Map") then
-			local objType
-			local rootPart = v:FindFirstChild(objData.Root) or nil
-			if objData.Root == "None" or rootPart then
-				if objData.Special == "TwoTime" then
-					objData.Text = twoTimeSpecial(v)
-					rootPart = v
-				end
+	for _, object in map:GetChildren() do
+		if object:IsA("Model") and object.Name == "Generator" and config["Toggle_GeneratorESP"] then
+			if not isAddedToESP(object) then
+				espAdd("Generator", "Generator", object:GetChildren(), object)
+			end
+		end
 
-				if objData.Special == "Veeronica" then
-					objData.Text = veeronicaSpecial(v)
-				end
+		if object:IsA("Model") and object.Name == "FakeGenerator" and config["Toggle_GeneratorESP"] then
+			if not isAddedToESP(object) then
+				espAdd("FakeGenerator", "Fake Generator", object:GetChildren(), object)
+			end
+		end
 
-				if objData.Special == "JohnDoeTrap" then
-					rootPart = v
-				end
+		if object:IsA("Tool") and object.Name == "Medkit" and config["Toggle_MedkitESP"] then
+			if not isAddedToESP(object) then
+				espAdd("Medkit", "Medkit", object:GetChildren(), object)
+			end
+		end
 
-				if objData.Special == "Killer" then
-					objType = "Killer"
-				else
-					objType = "Object"
-				end
+		if object:IsA("Tool") and object.Name == "BloxyCola" and config["Toggle_BloxyColaESP"] then
+			if not isAddedToESP(object) then
+				espAdd("Cola", "Bloxy Cola", object:GetChildren(), object)
+			end
+		end
+	end
 
-				local objs
-				local espText
+	for _, object in game.Workspace.Map.Ingame:GetChildren() do
 
-				if objType == "Object" then
-					espText = Drawing.new("Text")
-					espText.Font = Drawing.Fonts.System
-					espText.Text = objData.Text
-					if rootPart ~= nil then
-						if rootPart.Position ~= nil then
-							espText.Position = WorldToScreen(rootPart.Position)
-						end
-					else
-						espText:Remove()
-						return
-					end
-					espText.Color = objData.Color
-					espText.Outline = true
-					espText.Center = true
+		if object:IsA("Part") and string.find(object.Name, "RespawnLocation") and config["Toggle_TwoTimeRespawnESP"] then
+			if not isAddedToESP(object) then
+				espAdd("TwoTimeRespawn", "Some Dude's Respawn Location", {object}, object)
+			end
+		end
 
-				elseif objType == "Killer" then
+		if object:IsA("Part") and object.Name == "GraffitiCL" and config["Toggle_GraffitiESP"] then
+			if not isAddedToESP(object) then
+				espAdd("VeeGraffiti", "Veeronica Graffiti", {object}, object)
+			end
+		end
 
-					if rootPart ~= nil then
+		if object:IsA("Model") and object.Name == "SubspaceTripmine" and config["Toggle_TripmineESP"] then
+			if not isAddedToESP(object) then
+				espAdd("TaphTripmine", "Tripmine", object:GetChildren(), object)
+			end
+		end
 
-						local rLeg = v:FindFirstChild("Right Leg")
-						local lLeg = v:FindFirstChild("Left Leg")
-						local rArm = v:FindFirstChild("Right Arm") or v:FindFirstChild("Right Horn")
-						local lArm = v:FindFirstChild("Left Arm") or v:FindFirstChild("Left Horn")
-						local head = v:FindFirstChild("Head")
+		if object:IsA("Model") and string.find(object.Name, "TaphTripwire") and config["Toggle_TripwireESP"] then
+			if not isAddedToESP(object) then
+				espAdd("TaphTripwire", "Tripwire", object:GetChildren(), object)
+			end
+		end
 
+		if object:IsA("Model") and object.Name == "BuildermanSentry" and config["Toggle_BuildermanSentryESP"] then
+			if not isAddedToESP(object) then
+				espAdd("BuildermanSentry", "Sentry", object:GetChildren(), object)
+			end
+		end
 
-						if rLeg and lLeg and rArm and lArm and head then
+		if object:IsA("Model") and object.Name == "BuildermanDispenser" and config["Toggle_BuildermanDispenserESP"] then
+			if not isAddedToESP(object) then
+				espAdd("BuildermanDispenser", "Dispenser", object:GetChildren(), object)
+			end
+		end
+		
+		if object:IsA("Model") and table.find(ckClones, object.Name) and object:FindFirstChild("Humanoid") and config["Toggle_CKMinionESP"] then
+			debugPrint("Added c00lkidd minion to ESP")
+			if not isAddedToESP(object) then
+				espAdd("CKMinion", "c00lkidd Minion", object:GetChildren(), object)
+			end
+		end
+		
+		if object:IsA("Model") and object.Name == "1x1x1x1Zombie" and config["Toggle_1xZombieESP"] then
+			if not isAddedToESP(object) then
+				espAdd("1xZombie", "1x1x1x1 Minion", object:GetChildren(), object)
+			end
+		end
 
-							local boxOut, boxMid, boxIn, text = Drawing.new("Square"), Drawing.new("Square"), Drawing.new("Square"), Drawing.new("Text")
-
-							boxIn.Color, boxOut.Color = Color3.fromHex("000000"), Color3.fromHex("000000")
-
-							boxMid.Color, text.Color = Color3.fromHex("FF0000"), Color3.fromHex("FF0000")
-							text.Outline = true
-							text.Center = true
-							text.Font = Drawing.Fonts.System
-							text.Text = "Killer (" .. objData.Text .. ")"
-
-
-							objs = {
-								boxIn = boxIn, 
-								boxMid = boxMid, 
-								boxOut = boxOut, 
-								text = text, 
-								rLeg = rLeg, 
-								lLeg = lLeg, 
-								rArm = rArm, 
-								lArm = lArm, 
-								head = head
-							}
-						else
-							return 
-						end
-					end
-				end
-
-				if rootPart ~= nil then
-					table.insert(TempObjects, v.Address)
-					local entry = {}
-					entry.object = rootPart
-					entry.type = objType
-					if objType == "Killer" then
-						entry.objs = objs
-					else
-						entry.text = espText
-					end
-
-					entry.model = v
-					entry.temporary = true
-
-					table.insert(TextList, entry)
-				else
-					if espText then espText:Remove() end
+		if object:IsA("Folder") and string.find(object.Name, "Shadows") and config["Toggle_JohnDoeFootprintESP"] then
+			for _, part in object:GetChildren() do
+				if not isAddedToESP(part) then
+					espAdd("JDFootprint", "Footprint", {part}, part)
 				end
 			end
 		end
 	end
-end
 
-local function addCandyObjects(v) -- im so fucking lazyyyyyyyyyyyy
-	for objName, objData in pairs(candyESPObjects) do
-		if string.find(v.Name, objName) and v:IsA(objData.Type) and not table.find(TempObjects, v.Address) and game.Workspace.Map.Ingame:FindFirstChild("Map") then
-			local objType
-			local rootPart = v:FindFirstChild(objData.Root) or nil
-			if objData.Root == "None" or rootPart then
-				objType = "Object"
-
-				local espText
-				espText = Drawing.new("Text")
-				espText.Font = Drawing.Fonts.System
-				espText.Text = objData.Text
-				if rootPart ~= nil then
-					espText.Position = WorldToScreen(rootPart.Position)
-				else
-					espText:Remove()
-					return
-				end
-				espText.Color = objData.Color
-				espText.Outline = true
-				espText.Center = true
-
-				if rootPart ~= nil then
-					table.insert(TempObjects, v.Address)
-					local entry = {}
-					entry.object = rootPart
-					entry.type = objType
-					entry.text = espText
-
-					entry.model = v
-					entry.temporary = true
-
-					table.insert(TextList, entry)
-				else
-					if espText then espText:Remove() end
-				end
+	for _, object in game.Workspace.Players.Killers:GetChildren() do
+		if object:IsA("Model") and config["Toggle_KillerESP"] then
+			if not isAddedToESP(object) and object.Address ~= player.Character.Address then
+				espAdd("Killer", object.Name, object:GetDescendants(), object)
 			end
 		end
 	end
+
+	for _, object in game.Workspace.Players.Survivors:GetChildren() do
+		if object:IsA("Model") and config["Toggle_SurvivorESP"] then
+			if not isAddedToESP(object) and object.Address ~= player.Character.Address then
+				espAdd("Survivor", object.Name, object:GetDescendants(), object)
+			end
+		end
+	end
+
+	for _, object in game.Workspace:GetChildren() do
+		if object:IsA("Tool") and object.Name == "Medkit" and config["Toggle_MedkitESP"] then
+			if not isAddedToESP(object) then
+				espAdd("Medkit", "Medkit", object:GetChildren(), object)
+			end
+		end
+
+		if object:IsA("Tool") and object.Name == "BloxyCola" and config["Toggle_BloxyColaESP"] then
+			if not isAddedToESP(object) then
+				espAdd("Cola", "Bloxy Cola", object:GetChildren(), object)
+			end
+		end
+	end
+
 end
 
-local function updatePositions()
-	for i = #TextList, 1, -1 do
-		local v = TextList[i]
-		if not v then
-			table.remove(TextList, i)
-			continue
-		end
-
-		if (v.type == "Object" and not v.text) or (v.type == "Killer" and not v.objs) then
-			table.remove(TextList, i)
-			continue
-		end
-
-		local ok, result
-
-		if v.type == "Killer" then
-			ok, result = pcall(function()
-				if not v.object or not v.object.Parent then
-					return nil, "remove"
-				end
-
-				local boxIn = v.objs.boxIn
-				local boxMid = v.objs.boxMid
-				local boxOut = v.objs.boxOut
-				local text = v.objs.text
-
-
-				local bottomPos = (v.objs.rLeg.Position + v.objs.lLeg.Position) / 2 - Vector3.new(0, 1, 0)
-				local topPos = v.objs.head.Position + Vector3.new(0, 1, 0)
-				local rightPos = v.objs.rArm.Position
-				local leftPos = v.objs.lArm.Position
-
-				local bottom2 = WorldToScreen(bottomPos)
-				local top2 = WorldToScreen(topPos)
-				local right2 = WorldToScreen(rightPos)
-				local left2 = WorldToScreen(leftPos)
-
-				if right2.X < left2.X then
-					local temp = right2
-					right2 = left2
-					left2 = temp
-				end
-
-				local boxWidth = math.abs(right2.X - left2.X)
-				local boxHeight = math.abs(bottom2.Y - top2.Y)
-
-				local centerX = (right2.X + left2.X) / 2
-				local centerY = (bottom2.Y + top2.Y) / 2
-
-				boxIn.Size = Vector2.new(boxWidth, boxHeight)
-				boxIn.Position = Vector2.new(centerX - (boxWidth / 2), centerY - (boxHeight / 2))
-
-				boxMid.Size = Vector2.new(boxWidth + 2, boxHeight + 2)
-				boxMid.Position = Vector2.new(centerX - (boxWidth / 2) - 1, centerY - (boxHeight / 2) - 1)
-
-				boxOut.Size = Vector2.new(boxWidth + 4, boxHeight + 4)
-				boxOut.Position = Vector2.new(centerX - (boxWidth / 2) - 2, centerY - (boxHeight / 2) - 2)
-
-				text.Position = Vector2.new(centerX, centerY - (boxHeight / 2) - 12)
-
-				local _, onScreen = WorldToScreen(v.object.Position)
-				
-				-- fake noli check (✡️✡️✡️)
-				local function isRael(model)
-					if not model or not model.Address then
-						return false
-					end
-
-					for _, plr in ipairs(Players:GetChildren()) do
-						local char = plr.Character
-						if char and char.Address and char.Address == model.Address then
-							return true
-						end
-					end
-
-					return false
-				end
-
-				
-				local isVisible = isRael(v.model) and onScreen and Config.killersEnabled == true and not string.find(Players.LocalPlayer.Character:GetFullName(), "Killers")
-				if isVisible then
-					boxIn.Visible = true
-					boxMid.Visible = true
-					boxOut.Visible = true
-					text.Visible = true
-				else
-					boxIn.Visible = false
-					boxMid.Visible = false
-					boxOut.Visible = false
-					text.Visible = false
-				end
-
-				return true, "ok"
+local function veeAT()
+	local highlight = game.ReplicatedStorage.Assets.Survivors.Veeronica.Behavior:FindFirstChildOfClass("Highlight")
+	if highlight and config["Toggle_VeeTrick"] then
+		local R = memory_read("float", highlight.Address + 0xE0 + 0)
+		local G = memory_read("float", highlight.Address + 0xE0 + 4)
+		local B = memory_read("float", highlight.Address + 0xE0 + 8)
+		local Adornee = memory_read("uintptr_t", highlight.Address + memoryOffsets.Adornee)
+		local trickReadyColor = Color3.fromRGB(241, 85, 255)
+		if R == trickReadyColor.R and G == trickReadyColor.G and B == trickReadyColor.B and Adornee == game.Players.LocalPlayer.Character.Address then
+			task.spawn(function()
+				keypress(0x20)
+				task.wait(0.025)
+				keyrelease(0x20)
 			end)
+		end
+	end
+end
+
+local reelLetters = {
+	[1] = {"W", 0x57},
+	[2] = {"A", 0x41},
+	[3] = {"S", 0x53},
+	[4] = {"D", 0x44},
+}
+
+local function nosAuto() -- basically the same as old version js updated config stuff and timing to work with tick system
+	if player.PlayerGui.TemporaryUI:FindFirstChild("QTE") and config["Toggle_NosferatuAuto"] == true and os.clock() > nosCooldown then
+		local keys = {}
+		local largestKey = nil
+		local largestSize = 0
+
+
+		for _, v in game.Players.LocalPlayer.PlayerGui.TemporaryUI:FindFirstChild("QTE"):GetChildren() do
+			if v.Name == "PC" and v:FindFirstChild("TextLabel") then
+				table.insert(keys, v)
+			end
+		end
+
+		for _, v in ipairs(keys) do
+			local keytext = v:FindFirstChild("TextLabel").Text or ""
+			local keysize = v.AbsoluteSize.Y
+
+			local testMemory = memory_read("byte", v.Address + memoryOffsets.ElementVisible)
+
+			if not testMemory then
+				if os.clock() >= lastNotif + 5 then
+					notify("shitsaken", "An error occured while doing the quick time event.", 5)
+					lastNotif = os.clock()
+				end
+			end
+
+			if memory_read("byte", v.Address + memoryOffsets.ElementVisible) == 1 and keysize > largestSize then
+				largestSize = keysize
+				largestKey = v
+			end
+		end
+
+		if largestKey then
+			local keytext = memory_read("string", largestKey:FindFirstChild("TextLabel").Address + memoryOffsets.Text) or ""
+			for _, entry in pairs(reelLetters) do
+				local letter = entry[1]
+				if keytext == letter then
+					keypress(entry[2])
+					task.wait()
+					keyrelease(entry[2])
+					break 
+				end
+			end
+		end
+		local qteDelay
+
+		if math.random(1,2) == 1 then
+			qteDelay = config["Number_NosferatuRandomDelay"]
 		else
-			-- objects
-			ok, result = pcall(function()
-				if not v.object or not v.object.Parent then
-					return nil, "remove"
-				end
-
-				local objPos = v.object.Position
-				local screenPos, onScreen = WorldToScreen(objPos)
-
-				local isVisible = false
-				local okName, fullname = pcall(function() return v.object:GetFullName() end)
-
-				if okName and string.find(fullname, "Workspace") and onScreen and CheckEnabled(v.text.Text) then
-					isVisible = true
-				end
-
-				if isVisible and Config.espEnabled then
-					v.text.Visible = true
-					v.text.Position = screenPos
-				else
-					v.text.Visible = false
-				end
-
-				-- Generators
-				if v.model and v.object and v.object.Name == "Main" and game.Workspace.Map and game.Workspace.Map:FindFirstChild("Ingame") and game.Workspace.Map.Ingame:FindFirstChild("Map") then
-					local value = 0
-					local okProg, progVal = pcall(function()
-						local prog = v.model:FindFirstChild("Progress")
-						return prog and prog.Value or 0
-					end)
-					if okProg then value = progVal end
-
-					local Progress = 0
-					if value == 26 then Progress = 1
-					elseif value == 52 then Progress = 2
-					elseif value == 78 then Progress = 3
-					elseif value == 100 then
-						Progress = 4
-						pcall(function() v.text.Color = Color3.fromHex("764a4a") end)
-					end
-					if v.model.Name ~= "Fake Generator" then
-						pcall(function()
-							v.text.Text = "Generator (" .. tostring(Progress) .. "/4)"
-						end)
-					end
-				end
-
-				return true, "ok"
-			end)
+			qteDelay = 0 - config["Number_NosferatuRandomDelay"]
+		end
+		if qteDelay <= 0 then
+			qteDelay = 0.01
 		end
 
-		if not ok or result == "remove" or result == nil then
-			pcall(function()
-				if v and v.text then v.text:Remove() end
-				if v and v.objs then
-					v.objs.boxIn:Remove()
-					v.objs.boxMid:Remove()
-					v.objs.boxOut:Remove()
-					v.objs.text:Remove()
-				end
-			end)
-			table.remove(TextList, i)
-			if v and v.Address then
-				for j = #TempObjects, 1, -1 do
-					if TempObjects[j] == v.Address then
-						table.remove(TempObjects, j)
-					end
-				end
-			end
+		if player.Character.Parent.Name == "Killers" then
+			nosCooldown = config["Number_NosferatuKillerReelSpeed"] + qteDelay + os.clock()
+		else
+			nosCooldown = config["Number_NosferatuSurvivorReelSpeed"] + qteDelay + os.clock()
 		end
 
-		continue
-	end
+	end	
 end
 
-local function updateObjects()
-	-- jd traps
-	for _, obj in ipairs(game.Workspace.Map.Ingame:GetChildren()) do
-		if string.find(obj.Name, "Shadows") then
-			for _, v in ipairs(obj:GetChildren()) do
-				addObjects(v)
-			end
-		end
-	end
-
-	-- everything else
-	if workspace:FindFirstChild('Map') then
-		if workspace.Map:FindFirstChild('Ingame') then
-			if workspace.Map.Ingame:FindFirstChild('Map') then
-				for _, v in game.Workspace.Map.Ingame.Map:GetChildren() do
-					addObjects(v)
-				end
-				for _, v in game.Workspace.Map.Ingame:GetChildren() do
-					addObjects(v)
-				end
-				for _, v in game.Workspace:GetChildren() do
-					addObjects(v)
-				end
-			end
-		end
-	end
-	-- event candy
-	if game.Workspace.Map.Ingame:FindFirstChild("CurrencyLocations") then
-		for _, v in game.Workspace.Map.Ingame:FindFirstChild("CurrencyLocations"):GetChildren() do
-			addCandyObjects(v)
-		end
-	end
-
-	-- killer
-	if game.Workspace.Players.Killers then
-		for _, v in game.Workspace.Players.Killers:GetChildren() do
-			addObjects(v)
-		end
-	end
-
-end
-
-local function updateQuickUI()
+local function updateStaminaUI()
 	local StaminaText
 	local color = Color3.fromRGB(255, 255, 255)
 	local currentstam
 	local success, result = pcall(function()
-		return Players.LocalPlayer.PlayerGui.TemporaryUI.PlayerInfo.Bars.Stamina
+		return player.PlayerGui.TemporaryUI.PlayerInfo.Bars.Stamina
 	end)
 	local isReal = success and result or nil
 
 	if isReal then
 		local s, r = pcall(function()
-			return tostring(memory_read("string", Players.LocalPlayer.PlayerGui:FindFirstChild("TemporaryUI"):FindFirstChild("PlayerInfo"):FindFirstChild("Bars"):FindFirstChild("Stamina"):FindFirstChild("Amount").Address + memoryOffsets.Text))
+			return tostring(memory_read("string", player.PlayerGui:FindFirstChild("TemporaryUI"):FindFirstChild("PlayerInfo"):FindFirstChild("Bars"):FindFirstChild("Stamina"):FindFirstChild("Amount").Address + memoryOffsets.Text))
 		end)
 		if s then
 			currentstam = tonumber(string.match(r, "%d+"))
-			if string.find(r, "/") and Config.coloredStamina then
+			if string.find(r, "/") and config["Toggle_ColoredStamina"] then
 				if string.find(r, "/") then -- for some reason this bullshit works so
 					local totalstam = tonumber(string.match(r, "%d+", string.find(r, "/") + 1))
 					color = Color3.fromRGB(255*( 1 - currentstam / totalstam),255*(currentstam / totalstam), 60)
@@ -1627,13 +2910,13 @@ local function updateQuickUI()
 			end
 			StaminaText = r
 
-			if currentstam == 1 and Config.antiZeroStamina then
+			if currentstam == 1 and config["Toggle_AntiZeroStamina"] then
 				keyrelease(0xA0)
 			end
 
 		else
 			StaminaText = "Could not get stamina!"
-			if Config.staminaOnMouse or Config.antiZeroStamina then
+			if config["Toggle_StaminaOnMouse"] or config["Toggle_AntiZeroStamina"] then
 				if os.clock() >= lastNotif + 5 then
 					notify("shitsaken", "An error occured while getting stamina.", 5)
 					lastNotif = os.clock()
@@ -1642,7 +2925,8 @@ local function updateQuickUI()
 		end
 	end
 	if StaminaText ~= nil then
-		if Config.staminaOnMouse == true then
+		local Mouse = player:GetMouse()
+		if config["Toggle_StaminaOnMouse"] == true then
 			if stamina ~= nil then
 				stamina.Visible = true
 				stamina.Text = StaminaText
@@ -1670,359 +2954,143 @@ local function updateQuickUI()
 		end
 	end
 end
--- 😔😔😔
-local function HandleSectionDrag() -- im gonna kill myself istg
-	for _, section in ipairs(Sections) do
-		if ismouse1pressed() and guiVis and isrbxactive() then
-			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
 
-			if mousePos.X >= section.DragArea.Position.X and 
-				mousePos.X <= section.DragArea.Position.X + section.DragArea.Size.X and
-				mousePos.Y >= section.DragArea.Position.Y and 
-				mousePos.Y <= section.DragArea.Position.Y + section.DragArea.Size.Y then
-
-				if not section.IsDragging then
-					section.IsDragging = true
-					section.DragOffset = mousePos - section.Position
-				end
+local function TickFast()
+	updateESPPositions()
+	veeAT()
+	nosAuto()
+	updateStaminaUI()
+	
+	local speedMults = player.Character:FindFirstChild("SpeedMultipliers")
+	if speedMults and config["Toggle_SpeedHack"] == true then
+		for _, v in pairs(speedMults:GetChildren()) do
+			if v:IsA("NumberValue") then
+				v.Value = config["Number_SpeedHackSpeed"]
 			end
-		else
-			section.IsDragging = false
 		end
-
-		if section.IsDragging then
-			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
-			local newPos = mousePos - section.DragOffset
-
-			section.Position = newPos
-
-			section.Border.Position = newPos - Vector2.new(2, 2)
-			section.Title.Position = newPos + Vector2.new(5, 2)
-			section.DragArea.Position = newPos
-			section.BorderLine.Position = newPos + Vector2.new(3, 22)
-
-			for _, elementData in ipairs(section.Elements) do
-				elementData.Element.Position = section.Position + elementData.Offset
-			end
-
-			if section.DragArea.ZIndex ~= highestSectionZindex then -- this is the bugged thing
-
-				for _, s2 in ipairs(Sections) do -- put non selected sections at default zindex
-					if s2 ~= section then
-						for _, element in ipairs(s2.Elements) do
-							element.Element.ZIndex = element.ZIndex + s2.sectionN*10
-						end
-						s2.DragArea.ZIndex = 5 + s2.sectionN*10
-						s2.BorderLine.ZIndex = 6 + s2.sectionN*10
-						s2.Border.ZIndex = 4 + s2.sectionN*10
-						s2.Title.ZIndex = 6 + s2.sectionN*10
-					end
-				end
-
-
-				for _, element in ipairs(section.Elements) do
-					element.Element.ZIndex = element.ZIndex + highestSectionZindex
-				end
-				section.DragArea.ZIndex = highestSectionZindex
-				section.BorderLine.ZIndex = highestSectionZindex + 2
-				section.Border.ZIndex = highestSectionZindex - 1
-				section.Title.ZIndex = highestSectionZindex + 2
-			end
-
-		end
-
 	end
+	
 end
 
-local function HandleInteractables()
-	if ismouse1pressed() and guiVis and isrbxactive() then
-		for i, button in ipairs(Buttons) do
-			local mousePos = Vector2.new(Mouse.X, Mouse.Y)
-
-			if mousePos.X >= button.Box.Position.X and 
-				mousePos.X <= button.Box.Position.X + button.Box.Size.X and
-				mousePos.Y >= button.Box.Position.Y and 
-				mousePos.Y <= button.Box.Position.Y + button.Box.Size.Y then
-				if button.Type == "Checkbox" then
-					button.Variable = not button.Variable
-
-					if button.Variable == true then
-						button.Checkbox.Color = Color3.fromRGB(0, 255, 0)
-						SetValue(button.VarName, true)
-					else
-						button.Checkbox.Color = Color3.fromRGB(255, 0, 0)
-						SetValue(button.VarName, false)
-					end
-
-					-- wait until not clicking anymore (this freezes some shit but wtv)
-					while ismouse1pressed() do
-						task.wait()
-					end
-				end
-
-				if button.Type == "Slider" then
-					-- slider shit
-					while ismouse1pressed() do
-						local sliderMin = button.Box.Position.X + 1
-						local sliderMax = button.Box.Position.X + button.Box.Size.X - 1
-
-						local x = math.clamp(Mouse.X, sliderMin, sliderMax)
-
-						local fraction = 0
-						if sliderMax > sliderMin then
-							fraction = (x - sliderMin) / (sliderMax - sliderMin)
-						end
-						fraction = math.clamp(fraction, 0, 1)
-
-						local fullWidth = button.Box.Size.X - 2
-						local newWidth = math.max(1, math.floor(fullWidth * fraction + 0.5))
-						button.Slider.Size = Vector2.new(newWidth, button.Slider.Size.Y)
-
-						local maxVal = tonumber(button.totalSteps) or 1
-						local step = tonumber(button.steps) or 0.05
-						if maxVal <= 0 then maxVal = 1 end
-						if step <= 0 then step = 0.05 end
-
-						local rawVal = fraction * maxVal
-						local stepsCount = math.floor(rawVal / step + 0.5)
-						local value = math.clamp(stepsCount * step, 0, maxVal)
-
-						SetValue(button.varname, value)
-
-						if button.varText then
-							button.varText.Text = tostring(string.format("%.2f", value))
-						end
-
-						task.wait()
-					end
-				end
-
-				writefile("shitsaken.cfg", Http:JSONEncode(Config))
-				notify("shitsaken", "saved config", 2)
+local function TickSlow()
+	addObjects()
+	if iskeypressed(config["Keybind_SolveGen"]) then
+		if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI') then
+			if memory_read("float", game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI'):FindFirstChild('Container').Address + memoryOffsets.FrameSizeX) > 0.4 then
+				Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
+				task.spawn(function()
+					SolveGridPuzzle()
+				end)
 			end
-		end
-	end
-end
-
-
-
-local visualsSection = CreateSection("shitsaken " .. versionId .. " // Visuals", Vector2.new(250, 100), Vector2.new(200, 488), Color3.fromRGB(35, 35, 35))
-local utiliesSection = CreateSection("shitsaken " .. versionId .. " // Utilities", Vector2.new(500, 100), Vector2.new(200, 370), Color3.fromRGB(35, 35, 35))
-
---[[
-+17 (header -> checkbox)
-+25 (checkbox -> header)
-+28 (checkbox -> checkbox)
-+50 (slider -> slider)
-]]
-
--- visual section
-CreateHeader("ESP", Vector2.new(5, 25), visualsSection)
-CreateCheckbox("ESP Enabled", Config.espEnabled, Vector2.new(5, 40), "espEnabled", visualsSection)
-CreateCheckbox("Taph Tripmine ESP", Config.taphTripmine, Vector2.new(5, 68), "taphTripmine", visualsSection)
-CreateCheckbox("Taph Tripwire ESP", Config.taphTripwire, Vector2.new(5, 96), "taphTripwire", visualsSection)
-CreateCheckbox("Two Time Respawn ESP", Config.twoTimeRespawn, Vector2.new(5, 124), "twoTimeRespawn", visualsSection)
-CreateCheckbox("Veeronica Graffiti ESP", Config.veeronicaSpray, Vector2.new(5, 152), "veeronicaSpray", visualsSection)
-CreateCheckbox("Bloxy Cola ESP", Config.gameCola, Vector2.new(5, 180), "gameCola", visualsSection)
-CreateCheckbox("Medkit ESP", Config.gameMedkit, Vector2.new(5, 208), "gameMedkit", visualsSection)
-CreateCheckbox("Builderman Sentry ESP", Config.buildermanSentry, Vector2.new(5, 236), "buildermanSentry", visualsSection)
-CreateCheckbox("Builderman Dispenser ESP", Config.buildermanDispenser, Vector2.new(5, 264), "buildermanDispenser", visualsSection)
-CreateCheckbox("Generator ESP", Config.gameGenerator, Vector2.new(5, 292), "gameGenerator", visualsSection)
-CreateCheckbox("Fake Generator ESP", Config.noliGenerator, Vector2.new(5, 320), "noliGenerator", visualsSection)
-CreateCheckbox("Digital Footprint ESP", Config.johndoeDigitalFootprint, Vector2.new(5, 348), "johndoeDigitalFootprint", visualsSection)
-CreateCheckbox("1x1x1x1 Zombies ESP", Config.oneXFourZombie, Vector2.new(5, 376), "oneXFourZombie", visualsSection)
-CreateCheckbox("C00lkidd Minions ESP", Config.coolkiddMinions, Vector2.new(5, 404), "coolkiddMinions", visualsSection)
-CreateCheckbox("Killer ESP", Config.killersEnabled, Vector2.new(5, 432), "killersEnabled", visualsSection)
-CreateCheckbox("Event Candy ESP", Config.eventItem, Vector2.new(5, 460), "eventItem", visualsSection)
-
--- utilities section
-CreateHeader("Visual Tools", Vector2.new(5, 25), utiliesSection)
-CreateCheckbox("Stamina on Mouse", Config.staminaOnMouse, Vector2.new(5, 40), "staminaOnMouse", utiliesSection)
-CreateCheckbox("Colored Stamina", Config.coloredStamina, Vector2.new(5, 68), "coloredStamina", utiliesSection)
-CreateHeader("Automation", Vector2.new(5, 93), utiliesSection)
-CreateCheckbox("Auto Generator (Tap Space)", Config.autoGen, Vector2.new(5, 108), "autoGen", utiliesSection)
-CreateCheckbox("Auto Reel/Escape", Config.autoQTE, Vector2.new(5, 136), "autoQTE", utiliesSection)
-CreateSlider("Auto Reel Speed (secs)", Config.killerReelSpeed, "killerReelSpeed", 0.05, 1, Vector2.new(5, 164), utiliesSection)
-CreateSlider("Auto Escape Speed (secs)", Config.survivorReelSpeed, "survivorReelSpeed", 0.05, 1, Vector2.new(5, 214), utiliesSection)
-CreateSlider("Nosferatu Latency (secs)", Config.nosferatuRandomDelay, "nosferatuRandomDelay", 0.05, 1, Vector2.new(5, 264), utiliesSection)
-CreateCheckbox("Anti Zero Stamina", Config.antiZeroStamina, Vector2.new(5, 314), "antiZeroStamina", utiliesSection)
-CreateCheckbox("Auto Veeronica Trick", Config.autoTrick, Vector2.new(5, 342), "autoTrick", utiliesSection)
--- pointless but whatever
-local function UIUpdate()	
-	HandleSectionDrag()
-	HandleInteractables()
-end
-
--- ui shit
-spawn(function()
-	while true do
-		UIUpdate()
-		updateQuickUI()
-		task.wait()
-	end
-end)
-
--- add esp objects
-spawn(function()
-	while true do
-		task.wait(0.5)
-		if updatesPaused == false then
-			updateObjects()
-		end
-	end
-end)
-
--- autogen
-spawn(function()
-	while true do
-		if iskeypressed(0x20) and Config.autoGen == true then
-			if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI') then
-				if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI'):FindFirstChild('Container').AbsoluteSize.X > 5 then
-					Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
-					main()
-				end
-			end
-		end
-		task.wait(.2)
-	end
-end)
-
--- gui visuble
-spawn(function()
-	while true do
-		if iskeypressed(0x70) then
-			guiVis = not guiVis
-			for _, v in ipairs(UIElements) do
-				v.Element.Visible = guiVis
-			end
-			while iskeypressed(0x70) do
-				task.wait(0.05)
-			end
-		end
-		task.wait(0.05)
-	end
-end)
-
--- auto reel / escape
-spawn(function()
-	while true do
-		if game.Players.LocalPlayer.PlayerGui.TemporaryUI:FindFirstChild("QTE") and Config.autoQTE == true then
-			local keys = {}
-			local largestKey = nil
-			local largestSize = 0
-
-			for _, v in game.Players.LocalPlayer.PlayerGui.TemporaryUI:FindFirstChild("QTE"):GetChildren() do
-				if v.Name == "PC" and v:FindFirstChild("TextLabel") then
-					table.insert(keys, v)
-				end
-			end
-
-			for _, v in ipairs(keys) do
-				local keytext = v:FindFirstChild("TextLabel").Text or ""
-				local keysize = v.AbsoluteSize.Y
-
-				local testMemory = memory_read("byte", v.Address + memoryOffsets.ElementVisible)
-
-				if not testMemory then
-					if os.clock() >= lastNotif + 5 then
-						notify("shitsaken", "An error occured while doing the quick time event.", 5)
-						lastNotif = os.clock()
-					end
-				end
-
-				if memory_read("byte", v.Address + memoryOffsets.ElementVisible) == 1 and keysize > largestSize then
-					largestSize = keysize
-					largestKey = v
-				end
-			end
-
-			if largestKey then
-				local keytext = memory_read("string", largestKey:FindFirstChild("TextLabel").Address + memoryOffsets.Text) or ""
-				for _, entry in pairs(reelLetters) do
-					local letter = entry[1]
-					if keytext == letter then
-						keypress(entry[2])
-						task.wait()
-						keyrelease(entry[2])
-						break 
-					end
-				end
-			end
-			local qteDelay
-
-			if math.random(1,2) == 1 then -- idk why the fuck this works but the other thing didnt but whatever bro
-				qteDelay = Config.nosferatuRandomDelay
-			else
-				qteDelay = 0 - Config.nosferatuRandomDelay
-			end
-			if qteDelay <= 0 then
-				qteDelay = 0.01
-			end
-
-			if Players.LocalPlayer.Character.Parent.Name == "Killers" then
-				task.wait(Config.killerReelSpeed + qteDelay)
-			else
-				task.wait(Config.survivorReelSpeed + qteDelay)
-			end
-
 		end	
-		task.wait()
 	end
-end)
+end
 
--- veeronica auto trick
-spawn(function()
+abInit()
+
+local ui = gui.new("shitsaken | v" .. vn, Vector2.new(400, 567))
+
+ui:AddSection("visuals", true, {
+	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "ESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Survivor ESP", Variable = "Toggle_SurvivorESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Killer ESP", Variable = "Toggle_KillerESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Generator ESP", Variable = "Toggle_GeneratorESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Bloxy Cola ESP", Variable = "Toggle_BloxyColaESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Medkit ESP", Variable = "Toggle_MedkitESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Graffiti ESP", Variable = "Toggle_GraffitiESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Tripmine ESP", Variable = "Toggle_TripmineESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Tripwire ESP", Variable = "Toggle_TripwireESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Sentry ESP", Variable = "Toggle_BuildermanSentryESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Dispenser ESP", Variable = "Toggle_BuildermanDispenserESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "John Doe Footprint ESP", Variable = "Toggle_JohnDoeFootprintESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Two Time Ritual ESP", Variable = "Toggle_TwoTimeRespawnESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "C00lkidd Minion ESP", Variable = "Toggle_CKMinionESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "1x1x1x1 Zombie ESP", Variable = "Toggle_1xZombieESP"},
+
+})
+
+ui:AddSection("automation", false, {
+	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "automation"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Generator", Variable = "Toggle_SolveGen"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Veeronica Trick", Variable = "Toggle_VeeTrick"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Nosferatu QTE", Variable = "Toggle_NosferatuAuto"},
+	{object_type = "Slider", ID = ui:generateID(), Text = "Nosferatu QTE Speed (Killer)", Variable = "Number_NosferatuKillerReelSpeed", stepSize = 0.05, max = 0.5, min = 0.05},
+	{object_type = "Slider", ID = ui:generateID(), Text = "Nosferatu QTE Speed (Survivor)", Variable = "Number_NosferatuSurvivorReelSpeed", stepSize = 0.05, max = 0.5, min = 0.05},
+	{object_type = "Slider", ID = ui:generateID(), Text = "Nosferatu QTE Humanizer (Delay)", Variable = "Number_NosferatuRandomDelay", stepSize = 0.01, max = 0.5, min = 0.01},
+
+	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "autoblock"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Toggle Autoblock", Variable = "Toggle_BlockMonitor"},
+	{object_type = "Slider", ID = ui:generateID(), Text = "Block Preemption", Variable = "ParryPreemption", stepSize = 0.01, max = 0.4, min = 0.01},
+
+})
+
+ui:AddSection("misc", false, {
+	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "stamina"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Display Stamina on Mouse", Variable = "Toggle_StaminaOnMouse"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Colored Stamina Display", Variable = "Toggle_ColoredStamina"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Anti Zero Stamina", Variable = "Toggle_AntiZeroStamina"},
+	
+	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "rage"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Speedhack", Variable = "Toggle_SpeedHack"},
+	{object_type = "Slider", ID = ui:generateID(), Text = "Speedhack Speed", Variable = "Number_SpeedHackSpeed", stepSize = 0.1, max = 7, min = 0},
+
+
+	
+})
+
+print([[
+==============================
+shitsaken by jurylol
+contributions by mildilyacidic
+==============================                                                   
+v]] .. vn )
+
+task.spawn(function()
 	while true do
-		local highlight = game.ReplicatedStorage.Assets.Survivors.Veeronica.Behavior:FindFirstChildOfClass("Highlight")
-		if highlight and Config.autoTrick then
-			local R = memory_read("float", highlight.Address + 0xE0 + 0)
-			local G = memory_read("float", highlight.Address + 0xE0 + 4)
-			local B = memory_read("float", highlight.Address + 0xE0 + 8)
-			local Adornee = memory_read("uintptr_t", highlight.Address + memoryOffsets.Adornee)
-			local trickReadyColor = Color3.fromRGB(241, 85, 255)
-			if R == trickReadyColor.R and G == trickReadyColor.G and B == trickReadyColor.B and Adornee == game.Players.LocalPlayer.Character.Address then
-				keypress(0x20)
-				task.wait(0.05)
-				keyrelease(0x20)
-			end
+		if ui.close then
+			break
 		end
-	task.wait(0.05)
+		task.wait(0)
+		TickFast()
 	end
 end)
 
--- esp position update + reseter
-spawn(function()
+task.spawn(function()
 	while true do
+		if ui.close then
+			break
+		end
+		task.wait(0.1)
+		TickSlow()
+	end
+end)
+-- in individual thread because otherwise it doesnt work
+task.spawn(function()
+	while true do
+		if ui.close then
+			break
+		end
+		task.wait(0)
+		if player.Character.Name == "Guest1337" then
+			abOnUpdate()
+		end
+	end
+end)	
 
-		if game.Workspace.Map.Ingame:FindFirstChild("Map") then
-			updatePositions()
-		else
-			for _, v in TextList do
-				if v.type == "Killer" then
-					v.objs.boxIn:Remove()
-					v.objs.boxMid:Remove()
-					v.objs.boxOut:Remove()
-					v.objs.text:Remove()
-
-				else
-					v.text:Remove()
-				end
-			end
-			table.clear(TextList)
-			table.clear(TempObjects)
-			if stamina ~= nil then
+task.spawn(function() -- manager ui thread
+	while true do
+		if ui.close then
+			cleanup()
+			ui = {}
+			if stamina then
 				stamina:Remove()
-				stamina = nil
 			end
-			updatesPaused = true
-			repeat 
-				task.wait()	
-			until game.Workspace.Map.Ingame:FindFirstChild("Map")
-			task.wait(1)
-			updatesPaused = false
+			break
 		end
-		task.wait()
+		
+		ui:ManageSections()
+		ui:ManageClose()
+		ui:ManageDragging()
+		task.wait(0)
 	end
 end)
-
-notify("shitsaken", "shitsaken " .. versionId .. " loaded successfully!", 5)
