@@ -3,7 +3,8 @@ if _G.StopESP then
 	_G.StopESP()
 end
 
-local vn = "2.1.2"
+
+local vn = "2.1.3"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -2121,6 +2122,8 @@ function ap:p()
 	end
 
 	keypress(config["Keybind_Block"])
+	task.wait(0)
+	keyrelease(config["Keybind_Block"])
 
 	self.lastParryTime = currentTime
 	return true
