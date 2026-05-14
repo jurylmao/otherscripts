@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.1.3"
+local vn = "2.1.4"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -2899,9 +2899,18 @@ local function updateStaminaUI()
 
 	if isReal then
 		local s, r = pcall(function()
-			return tostring(memory_read("string", player.PlayerGui:FindFirstChild("TemporaryUI"):FindFirstChild("PlayerInfo"):FindFirstChild("Bars"):FindFirstChild("Stamina"):FindFirstChild("Amount").Address + memoryOffsets.Text))
+			local stam = tostring(memory_read("string", player.PlayerGui:FindFirstChild("TemporaryUI"):FindFirstChild("PlayerInfo"):FindFirstChild("Bars"):FindFirstChild("Stamina"):FindFirstChild("Amount").Address + memoryOffsets.Text))
+			if string.find(stam, "/") and string.len(stam) > 4 then
+				return stam
+			else
+				-- fallback if offsets are out of date
+				local stam = player.PlayerGui:FindFirstChild("TemporaryUI"):FindFirstChild("PlayerInfo"):FindFirstChild("Bars"):FindFirstChild("Stamina"):FindFirstChild("Amount").Text
+				if stam then
+					return stam
+				end
+			end
 		end)
-		if s then
+		if s and r then
 			currentstam = tonumber(string.match(r, "%d+"))
 			if string.find(r, "/") and config["Toggle_ColoredStamina"] then
 				if string.find(r, "/") then -- for some reason this bullshit works so
