@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.1.4"
+local vn = "2.1.5"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -950,6 +950,9 @@ local function parse_grid()
 					local numberLabel = circle:FindFirstChild("Number")
 					if numberLabel then
 						local pairNum = tonumber(memory_read("string", numberLabel.Address + memoryOffsets.Text))
+						if not tonumber(pairNum) then
+							pairNum = numberLabel.Text
+						end 
 						cells[row][col].value = pairNum
 
 						if not circles[pairNum] then
@@ -2449,7 +2452,19 @@ local function updateESPPositions()
 
 		if not espData then continue end
 
-		if not espData.root or not espData.root:IsDescendantOf(game.Workspace) or espData.root.Name ~= espData.originalName then
+		local isValid = false
+		if espData.root and espData.root:IsDescendantOf(game.Workspace) 
+			and espData.root.Name == espData.originalName then
+
+			for _, obj in pairs(espData.objects) do
+				if obj and obj:IsDescendantOf(espData.root) then
+					isValid = true
+					break
+				end
+			end
+		end
+
+		if not isValid then
 			for _, v in pairs(espData.uiparts) do
 				v.Visible = false
 				v:Remove()
@@ -2556,27 +2571,29 @@ local function updateESPPositions()
 		}
 
 		if #objectsPositions > 0 then
-
 			draw[espData.class]()
-			local name = getNamefromObjectName(espData.root.Name)
-			if name ~= "None" then
-				if name == "CUSTOM1" then
-					local start = espData.root.Name:find("RespawnLocation")
-					local prefix = espData.root.Name:sub(1, start - 1)
-					name = prefix .. "'s Ritual" 
-					print(name)
-				end
-				espData.uiparts.title.Text = name
+
+			if espData.class == "Character" then
+				espData.uiparts.title.Text = espData.originalName
 			else
-				if espData and espData.uiparts and not espData.root:FindFirstChild("Humanoid") then
-					for _, drawing in pairs(espData.uiparts) do
-						drawing.Visible = false
-						drawing:Remove()
+				local name = getNamefromObjectName(espData.root.Name)
+				if name ~= "None" then
+					if name == "CUSTOM1" then
+						local start = espData.root.Name:find("RespawnLocation")
+						local prefix = espData.root.Name:sub(1, start - 1)
+						name = prefix .. "'s Ritual" 
 					end
+					espData.uiparts.title.Text = name
+				else
+					if espData and espData.uiparts then
+						for _, drawing in pairs(espData.uiparts) do
+							drawing.Visible = false
+							drawing:Remove()
+						end
+					end
+					table.remove(espDrawings, i)
 				end
-				espDrawings[espData] = nil
 			end
-			
 		else
 			for _, v in pairs(espData.uiparts) do
 				v.Visible = false
@@ -2589,8 +2606,19 @@ end
 local function isAddedToESP(object)
 	for _, item in ipairs(espDrawings) do
 		if item and item.root and item.root.Address == object.Address then
-			if item.originalName == object.Name then
-				return true
+			if item.root:IsDescendantOf(game.Workspace) 
+				and item.originalName == object.Name then
+
+				local active = false
+				for _, part in pairs(item.objects) do
+					if part and part:IsDescendantOf(item.root) then
+						active = true
+						break
+					end
+				end
+				if active then
+					return true
+				end
 			end
 		end
 	end
