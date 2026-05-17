@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.1.6"
+local vn = "2.1.7"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -163,7 +163,7 @@ local memoryOffsets = {
 	Text = offsets.Offsets.GuiObject.Text,
 	ElementVisible = offsets.Offsets.GuiObject.Visible,
 	Adornee = offsets.Offsets.Misc.Adornee,
-	FrameSizeX = offsets.Offsets.GuiObject.Size + 4
+	FrameSizeX = offsets.Offsets.GuiObject.Size + 44
 }
 -- ck clones setup
 local ckClones = {}
@@ -3067,7 +3067,7 @@ local function TickSlow()
 	addObjects()
 	if iskeypressed(config["Keybind_SolveGen"]) then
 		if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI') then
-			if memory_read("float", game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI'):FindFirstChild('Container').Address + memoryOffsets.FrameSizeX) > 0.4 then
+			if memory_read("float", game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI'):FindFirstChild('Container').Address + memoryOffsets.FrameSizeX) > 0.49 then
 				Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
 				task.spawn(function()
 					SolveGridPuzzle()
