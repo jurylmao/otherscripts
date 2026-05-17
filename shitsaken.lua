@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.1.5"
+local vn = "2.1.6"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -152,25 +152,18 @@ end
 
 -- Offsets
 
-local function get_offsets()
-	local t = {}
-	local ok, res = pcall(function()
-		return game:HttpGet("https://offsets.ntgetwritewatch.workers.dev/offsets.json")
-	end)
-	if not ok or not res then return t end
-	for k, v in res:gmatch('"([^"]-)"%s*:%s*"([^"]-)"') do
-		t[k] = v
-	end
-	return t
-end
+local HttpService = game:GetService("HttpService")
+local url = "https://imtheo.lol/Offsets/Offsets.json"
+
+local response = game:HttpGet(url)
+local offsets = HttpService:JSONDecode(response)
 
 local memoryOffsets = {
-	Ping = get_offsets()["Ping"],
-	Text = get_offsets()["TextLabelText"],
-	ElementVisible = get_offsets()["FrameVisible"],
-	Value = get_offsets()["Value"],
-	Adornee = get_offsets()["Adornee"],
-	FrameSizeX = get_offsets()["FrameSizeX"],
+	--Ping = get_offsets()["Ping"],
+	Text = offsets.Offsets.GuiObject.Text,
+	ElementVisible = offsets.Offsets.GuiObject.Visible,
+	Adornee = offsets.Offsets.Misc.Adornee,
+	FrameSizeX = offsets.Offsets.GuiObject.Size + 4
 }
 -- ck clones setup
 local ckClones = {}
@@ -1612,10 +1605,6 @@ local kcfgs = {
 	}
 }
 
-local OFFSETS = {
-	SoundId = nil,
-	Primitive = nil
-}
 
 local function gsid(soundInstance)
 	return soundInstance.Name
