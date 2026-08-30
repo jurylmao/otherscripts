@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.1.8"
+local vn = "2.1.9"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -924,7 +924,7 @@ end
 local function parse_grid()
 	local cells = {}
 	local circles = {}
-	local gridSize = 6
+	local gridSize = 7
 
 	for row = 1, gridSize do
 		cells[row] = {}
@@ -1334,8 +1334,11 @@ end
 local function draw(cells, solutions)
 	for color, path in pairs(solutions) do
 		local firstPos = cells[path[1][1]][path[1][2]].position
-		local x = firstPos.X + 25
-		local y = firstPos.Y + 25
+		local firstCell = cells[path[1][1]][path[1][2]] 
+		local firstPos = firstCell.position 
+		-- use the actual center of the cell 
+		local x = firstPos.X + firstCell.frame.AbsoluteSize.X / 2 
+		local y = firstPos.Y + firstCell.frame.AbsoluteSize.Y / 2
 
 		-- Move to the first position
 		mousemoveabs(x, y)
