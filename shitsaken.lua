@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.1.7"
+local vn = "2.1.8"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -1805,7 +1805,7 @@ function ap.new()
 end
 
 function ap:sc()
-	if not game.Workspace:FindFirstChild('Map') then
+	if not workspace:FindFirstChild('Map') then
 		print('Acid AutoBlock: Sanity check failed: No Map in Workspace')
 		return false
 	end
@@ -1936,7 +1936,7 @@ function ap:uas()
 		return
 	end
 
-	local killersfolder = game.Workspace:FindFirstChild('Players')
+	local killersfolder = workspace:FindFirstChild('Players')
 	if killersfolder then
 		killersfolder = killersfolder:FindFirstChild('Killers')
 	end
@@ -2324,7 +2324,7 @@ local espFuncs = {
 		espTitle.Size = 15
 		espTitle.Outline = true
 		espTitle.Center = true
-		
+
 		local espHealth = Drawing.new("Text")
 		espHealth.Text = "67"
 		espHealth.Color = color
@@ -2442,7 +2442,7 @@ local function updateESPPositions()
 		if not espData then continue end
 
 		local isValid = false
-		if espData.root and espData.root:IsDescendantOf(game.Workspace) 
+		if espData.root and espData.root:IsDescendantOf(workspace) 
 			and espData.root.Name == espData.originalName then
 
 			for _, obj in pairs(espData.objects) do
@@ -2463,7 +2463,7 @@ local function updateESPPositions()
 		end
 
 		for _, object in pairs(espData.objects) do
-			if object and object:IsDescendantOf(game.Workspace) then
+			if object and object:IsDescendantOf(workspace) then
 				local objPos = object.Position
 				if objPos then
 					local pos = WorldToScreen(object.Position)
@@ -2595,7 +2595,7 @@ end
 local function isAddedToESP(object)
 	for _, item in ipairs(espDrawings) do
 		if item and item.root and item.root.Address == object.Address then
-			if item.root:IsDescendantOf(game.Workspace) 
+			if item.root:IsDescendantOf(workspace) 
 				and item.originalName == object.Name then
 
 				local active = false
@@ -2668,19 +2668,19 @@ local function espAdd(class:string, title:string, objects, root)
 		["BuildermanDispenser"] = function()
 			espFuncs["Object"](cleanobjectlist, config["BuildermanDispenser"], title, root)
 		end,
-		
+
 		["JDFootprint"] = function()
 			espFuncs["Object"](cleanobjectlist, config["JohnDoeFootprint"], title, root)
 		end,
-		
+
 		["CKMinion"] = function()
 			espFuncs["Object"](cleanobjectlist, config["CKMinion"], title, root)
 		end,
-		
+
 		["1xZombie"] = function()
 			espFuncs["Object"](cleanobjectlist, config["1xZombie"], title, root)
 		end,
-		
+
 		["TwoTimeRespawn"] = function()
 			espFuncs["Object"](cleanobjectlist, config["TwoTimeRespawn"], title, root)
 		end,
@@ -2691,7 +2691,7 @@ end
 
 local function addObjects() -- this is so messy but it works so I Don't Care!
 
-	local map = game.Workspace.Map.Ingame:FindFirstChild("Map")
+	local map = workspace.Map.Ingame:FindFirstChild("Map")
 
 	if not map then
 		cleanup()
@@ -2724,7 +2724,7 @@ local function addObjects() -- this is so messy but it works so I Don't Care!
 		end
 	end
 
-	for _, object in game.Workspace.Map.Ingame:GetChildren() do
+	for _, object in workspace.Map.Ingame:GetChildren() do
 
 		if object:IsA("Part") and string.find(object.Name, "RespawnLocation") and config["Toggle_TwoTimeRespawnESP"] then
 			if not isAddedToESP(object) then
@@ -2761,14 +2761,14 @@ local function addObjects() -- this is so messy but it works so I Don't Care!
 				espAdd("BuildermanDispenser", "Dispenser", object:GetChildren(), object)
 			end
 		end
-		
+
 		if object:IsA("Model") and table.find(ckClones, object.Name) and object:FindFirstChild("Humanoid") and config["Toggle_CKMinionESP"] then
 			debugPrint("Added c00lkidd minion to ESP")
 			if not isAddedToESP(object) then
 				espAdd("CKMinion", "c00lkidd Minion", object:GetChildren(), object)
 			end
 		end
-		
+
 		if object:IsA("Model") and object.Name == "1x1x1x1Zombie" and config["Toggle_1xZombieESP"] then
 			if not isAddedToESP(object) then
 				espAdd("1xZombie", "1x1x1x1 Minion", object:GetChildren(), object)
@@ -2784,7 +2784,7 @@ local function addObjects() -- this is so messy but it works so I Don't Care!
 		end
 	end
 
-	for _, object in game.Workspace.Players.Killers:GetChildren() do
+	for _, object in workspace.Players.Killers:GetChildren() do
 		if object:IsA("Model") and config["Toggle_KillerESP"] then
 			if not isAddedToESP(object) and object.Address ~= player.Character.Address then
 				espAdd("Killer", object.Name, object:GetDescendants(), object)
@@ -2792,7 +2792,7 @@ local function addObjects() -- this is so messy but it works so I Don't Care!
 		end
 	end
 
-	for _, object in game.Workspace.Players.Survivors:GetChildren() do
+	for _, object in workspace.Players.Survivors:GetChildren() do
 		if object:IsA("Model") and config["Toggle_SurvivorESP"] then
 			if not isAddedToESP(object) and object.Address ~= player.Character.Address then
 				espAdd("Survivor", object.Name, object:GetDescendants(), object)
@@ -2800,7 +2800,7 @@ local function addObjects() -- this is so messy but it works so I Don't Care!
 		end
 	end
 
-	for _, object in game.Workspace:GetChildren() do
+	for _, object in workspace:GetChildren() do
 		if object:IsA("Tool") and object.Name == "Medkit" and config["Toggle_MedkitESP"] then
 			if not isAddedToESP(object) then
 				espAdd("Medkit", "Medkit", object:GetChildren(), object)
@@ -3041,7 +3041,7 @@ local function TickFast()
 	veeAT()
 	nosAuto()
 	updateStaminaUI()
-	
+
 	local speedMults = player.Character:FindFirstChild("SpeedMultipliers")
 	if speedMults and config["Toggle_SpeedHack"] == true then
 		for _, v in pairs(speedMults:GetChildren()) do
@@ -3050,7 +3050,7 @@ local function TickFast()
 			end
 		end
 	end
-	
+
 	if iskeypressed(0x70) then
 		ui.visible = not ui.visible
 		for _, drawing in pairs(ui.drawings) do
@@ -3060,7 +3060,7 @@ local function TickFast()
 			task.wait(0.05)
 		end
 	end
-	
+
 end
 
 local function TickSlow()
@@ -3134,7 +3134,7 @@ task.spawn(function() -- manager ui thread
 			ui:ManageSections()
 			ui:ManageClose()
 			ui:ManageDragging()
-			
+
 		end
 		task.wait(0)
 	end
