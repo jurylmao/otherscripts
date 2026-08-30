@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.1.9"
+local vn = "2.2"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -86,6 +86,7 @@ local config = {
 	["Number_SpeedHackSpeed"] = 3,
 }
 local espDrawings = {}
+local espScanId = 0
 local function cleanup()
 	for i = #espDrawings, 1, -1 do
 		local espData = espDrawings[i]
@@ -919,397 +920,190 @@ function gui:AddSection(name, selected, objects)
 	end
 end
 
--- acidzs autogen
+-- Generator puzzle solver
+-- Bounded cooperative search: difficult or invalid boards safely return nil.
+local SOLVER_LIMITS = {
+	maxNodes = 24000,
+	maxSeconds = 1.25,
+	yieldEvery = 160,
+	maxRoutesPerPair = 14,
+}
 
 local function parse_grid()
-	local cells = {}
-	local circles = {}
+	local cells, circles = {}, {}
 	local gridSize = 7
-
 	for row = 1, gridSize do
 		cells[row] = {}
 		for col = 1, gridSize do
-			local cellName = row .. "-" .. col
-			local cell = Grid:FindFirstChild(cellName)
+			local cell = Grid:FindFirstChild(row .. "-" .. col)
 			if cell then
-				cells[row][col] = {
-					frame = cell,
-					position = cell.AbsolutePosition,
-					value = 0
-				}
-
+				cells[row][col] = {frame = cell, position = cell.AbsolutePosition, value = 0}
 				local circle = cell:FindFirstChild("Circle")
-				if circle then
-					local numberLabel = circle:FindFirstChild("Number")
-					if numberLabel then
-						local pairNum = tonumber(memory_read("string", numberLabel.Address + memoryOffsets.Text))
-						if not tonumber(pairNum) then
-							pairNum = numberLabel.Text
-						end 
+				local numberLabel = circle and circle:FindFirstChild("Number")
+				if numberLabel then
+					local pairNum = tonumber(memory_read("string", numberLabel.Address + memoryOffsets.Text)) or tonumber(numberLabel.Text)
+					if pairNum then
 						cells[row][col].value = pairNum
-
-						if not circles[pairNum] then
-							circles[pairNum] = {}
-						end
-						table.insert(circles[pairNum], {row = row, col = col})
+						circles[pairNum] = circles[pairNum] or {}
+						circles[pairNum][#circles[pairNum] + 1] = {row = row, col = col}
 					end
 				end
 			end
 		end
 	end
-
 	return cells, circles, gridSize
 end
 
+local function solveGridBounded(endpointsMap, rows, cols)
+	local totalCells = rows * cols
+	local board, colors = {}, {}
+	local directions = {-cols, cols, -1, 1}
+	local nodes, deadline, aborted = 0, os.clock() + SOLVER_LIMITS.maxSeconds, false
+	local marks, markId = {}, 0
 
-local function get_neighbors(r, c, rows, cols)
-	local neighbors = {}
-	local dirs = {{-1, 0}, {1, 0}, {0, -1}, {0, 1}}
-	for _, dir in ipairs(dirs) do
-		local nr, nc = r + dir[1], c + dir[2]
-		if nr >= 1 and nr <= rows and nc >= 1 and nc <= cols then
-			table.insert(neighbors, {nr, nc})
-		end
+	for index = 1, totalCells do board[index] = 0 end
+	local function indexOf(row, col) return (row - 1) * cols + col end
+	local function rowOf(index) return math.floor((index - 1) / cols) + 1 end
+	local function distance(a, b)
+		return math.abs(rowOf(a) - rowOf(b)) + math.abs(((a - 1) % cols) - ((b - 1) % cols))
 	end
-	return neighbors
-end
-
-
-local function is_walkable(r, c, targetColor, grid, rows, cols)
-	if r < 1 or r > rows or c < 1 or c > cols then
-		return false
-	end
-	local cellValue = grid[r][c].value
-	return cellValue == 0 or cellValue == targetColor
-end
-
-
-local function manhattan_distance(a, b)
-
-	local ar, ac, br, bc
-	if type(a) == "table" then
-		ar = a.row or a[1]
-		ac = a.col or a[2]
-	end
-	if type(b) == "table" then
-		br = b.row or b[1]
-		bc = b.col or b[2]
-	end
-	return math.abs(ar - br) + math.abs(ac - bc)
-end
-
-
-local function pqs(path, startPos, goalPos)
-	if #path == 0 then
-		return math.huge
-	end
-
-	local sr = startPos.row or startPos[1]
-	local sc = startPos.col or startPos[2]
-
-	if path[1][1] ~= sr or path[1][2] ~= sc then
-		return math.huge
-	end
-
-	local score = #path
-	local straightDist = manhattan_distance(startPos, goalPos)
-	local deviationPenalty = math.max(0, #path - straightDist - 1) * 2
-	score = score + deviationPenalty
-
-	local directionChanges = 0
-	for i = 3, #path do
-		local prevDir = {path[i-1][1] - path[i-2][1], path[i-1][2] - path[i-2][2]}
-		local currDir = {path[i][1] - path[i-1][1], path[i][2] - path[i-1][2]}
-		if prevDir[1] ~= currDir[1] or prevDir[2] ~= currDir[2] then
-			directionChanges = directionChanges + 1
-		end
-	end
-	score = score + directionChanges * 0.5
-
-	return score
-end
-
-
-local function fbp(startPos, goalPos, color, grid, rows, cols, maxPaths)
-	maxPaths = maxPaths or 20
-
-	local function heuristic(pos)
-		return manhattan_distance(pos, goalPos)
-	end
-
-	local paths = {}
-	local frontier = {}
-	local visitedCosts = {}
-
-	local startKey = startPos.row .. "," .. startPos.col
-	table.insert(frontier, {
-		priority = heuristic({startPos.row, startPos.col}),
-		cost = 0,
-		path = {{startPos.row, startPos.col}},
-		visited = {[startKey] = true}
-	})
-
-	while #frontier > 0 and #paths < maxPaths do
-		table.sort(frontier, function(a, b) return a.priority < b.priority end)
-		local current = table.remove(frontier, 1)
-
-		local currentPos = current.path[#current.path]
-		local posKey = currentPos[1] .. "," .. currentPos[2]
-
-		if visitedCosts[posKey] and visitedCosts[posKey] < current.cost then
-			continue
-		end
-		visitedCosts[posKey] = current.cost
-
-		if currentPos[1] == goalPos.row and currentPos[2] == goalPos.col then
-			table.insert(paths, current.path)
-			continue
-		end
-
-		if current.cost > manhattan_distance({startPos.row, startPos.col}, {goalPos.row, goalPos.col}) + 15 then
-			continue
-		end
-
-		for _, neighbor in ipairs(get_neighbors(currentPos[1], currentPos[2], rows, cols)) do
-			local nr, nc = neighbor[1], neighbor[2]
-			local nKey = nr .. "," .. nc
-
-			if not current.visited[nKey] and is_walkable(nr, nc, color, grid, rows, cols) then
-				local newVisited = {}
-				for k, v in pairs(current.visited) do
-					newVisited[k] = v
-				end
-				newVisited[nKey] = true
-
-				local newPath = {}
-				for _, p in ipairs(current.path) do
-					table.insert(newPath, p)
-				end
-				table.insert(newPath, {nr, nc})
-
-				local newCost = current.cost + 1
-				local priority = newCost + heuristic({nr, nc})
-
-				table.insert(frontier, {
-					priority = priority,
-					cost = newCost,
-					path = newPath,
-					visited = newVisited
-				})
-			end
-		end
-	end
-
-	table.sort(paths, function(a, b)
-		return pqs(a, {startPos.row, startPos.col}, {goalPos.row, goalPos.col}) < pqs(b, {startPos.row, startPos.col}, {goalPos.row, goalPos.col})
-	end)
-
-	return paths
-end
-
-
-local function qcc(grid, remainingPairs, rows, cols)
-	for color, endpoints in pairs(remainingPairs) do
-		local startPos, goalPos = endpoints[1], endpoints[2]
-		local queue = {{startPos.row, startPos.col}}
-		local visited = {[startPos.row .. "," .. startPos.col] = true}
-		local found = false
-
-		while #queue > 0 and not found do
-			local pos = table.remove(queue, 1)
-			local r, c = pos[1], pos[2]
-
-			if r == goalPos.row and c == goalPos.col then
-				found = true
-				break
-			end
-
-			for _, neighbor in ipairs(get_neighbors(r, c, rows, cols)) do
-				local nr, nc = neighbor[1], neighbor[2]
-				local nKey = nr .. "," .. nc
-
-				if not visited[nKey] then
-					local cell = grid[nr][nc].value
-					if cell == 0 or cell == color or (nr == goalPos.row and nc == goalPos.col) then
-						visited[nKey] = true
-						table.insert(queue, {nr, nc})
-					end
-				end
-			end
-		end
-
-		if not found then
+	local function checkpoint()
+		nodes += 1
+		if nodes >= SOLVER_LIMITS.maxNodes or os.clock() >= deadline then
+			aborted = true
 			return false
 		end
+		if nodes % SOLVER_LIMITS.yieldEvery == 0 then task.wait() end
+		return true
 	end
-	return true
-end
-
-
-local function cfc(pos, grid, rows, cols)
-	local count = 0
-	local r = pos.row or pos[1]
-	local c = pos.col or pos[2]
-	for _, neighbor in ipairs(get_neighbors(r, c, rows, cols)) do
-		if grid[neighbor[1]][neighbor[2]].value == 0 then
-			count = count + 1
-		end
+	local function neighbor(index, direction)
+		local col = ((index - 1) % cols) + 1
+		if (direction == -1 and col == 1) or (direction == 1 and col == cols) then return nil end
+		local nextIndex = index + direction
+		return (nextIndex >= 1 and nextIndex <= totalCells) and nextIndex or nil
 	end
-	return count
-end
-
-
-local function e_mrv_hr(remainingPairs, grid, rows, cols)
-	local colorScores = {}
-
-	for color, endpoints in pairs(remainingPairs) do
-		local startPos, goalPos = endpoints[1], endpoints[2]
-		local paths = fbp(startPos, goalPos, color, grid, rows, cols, 5)
-
-		if #paths == 0 then
-			return {color}
-		end
-
-		local pathScore = 10.0 / #paths
-		local startFree = cfc(startPos, grid, rows, cols)
-		local goalFree = cfc(goalPos, grid, rows, cols)
-		local bottleneckScore = 5.0 / (startFree + goalFree + 1)
-		local distanceScore = manhattan_distance(startPos, goalPos) * 0.1
-
-		colorScores[color] = pathScore + bottleneckScore + distanceScore
-	end
-
-	local sortedColors = {}
-	for color, _ in pairs(remainingPairs) do
-		table.insert(sortedColors, color)
-	end
-	table.sort(sortedColors, function(a, b)
-		return colorScores[a] > colorScores[b]
-	end)
-
-	return sortedColors
-end
-
-
-local function backtrack_solve(colorsToSolve, endpointsMap, grid, solution, rows, cols, depth, maxDepth)
-	if #colorsToSolve == 0 then
-		return solution
-	end
-
-	if depth > maxDepth then
-		return nil
-	end
-
-	local remainingPairs = {}
-	for _, color in ipairs(colorsToSolve) do
-		remainingPairs[color] = endpointsMap[color]
-	end
-
-	local colorsSorted = e_mrv_hr(remainingPairs, grid, rows, cols)
-
-	for _, color in ipairs(colorsSorted) do
-		local endpoints = endpointsMap[color]
-		local startPos, goalPos = endpoints[1], endpoints[2]
-
-		local remaining = {}
-		for _, c in ipairs(colorsToSolve) do
-			if c ~= color then
-				table.insert(remaining, c)
-			end
-		end
-
-
-
-		local paths = fbp(startPos, goalPos, color, grid, rows, cols, 15)
-
-		if #paths == 0 then
-			continue
-		end
-
-		for i, path in ipairs(paths) do
-			local originalStates = {}
-			for _, pos in ipairs(path) do
-				local r, c = pos[1], pos[2]
-				originalStates[r .. "," .. c] = grid[r][c].value
-				grid[r][c].value = color
-			end
-
-			solution[color] = path
-
-			local remainingMap = {}
-			for _, col in ipairs(remaining) do
-				remainingMap[col] = endpointsMap[col]
-			end
-
-			if qcc(grid, remainingMap, rows, cols) then
-				local result = backtrack_solve(remaining, endpointsMap, grid, solution, rows, cols, depth + 1, maxDepth)
-				if result then
-					return result
-				end
-			end
-
-			solution[color] = nil
-			for key, val in pairs(originalStates) do
-				local r, c = key:match("(%d+),(%d+)")
-				grid[tonumber(r)][tonumber(c)].value = val
-			end
-		end
-	end
-
-	return nil
-end
-
-
-local function solve(endpointsMap, rows, cols)
-	local grid = {}
-	for r = 1, rows do
-		grid[r] = {}
-		for c = 1, cols do
-			grid[r][c] = {value = 0}
-		end
+	local function canUse(index, color)
+		return index and (board[index] == 0 or board[index] == color)
 	end
 
 	for color, endpoints in pairs(endpointsMap) do
-		local r1, c1 = endpoints[1].row, endpoints[1].col
-		local r2, c2 = endpoints[2].row, endpoints[2].col
-		grid[r1][c1].value = color
-		grid[r2][c2].value = color
+		if #endpoints ~= 2 then return nil end
+		local startIndex = indexOf(endpoints[1].row, endpoints[1].col)
+		local goalIndex = indexOf(endpoints[2].row, endpoints[2].col)
+		if startIndex == goalIndex or board[startIndex] ~= 0 or board[goalIndex] ~= 0 then return nil end
+		board[startIndex], board[goalIndex] = color, color
+		colors[#colors + 1] = color
 	end
 
-	local colorsToSolve = {}
-	for color, _ in pairs(endpointsMap) do
-		table.insert(colorsToSolve, color)
-	end
-
-	local maxDepths = {15, 20, 25}
-	for _, maxDepth in ipairs(maxDepths) do
-
-		for r = 1, rows do
-			for c = 1, cols do
-				grid[r][c].value = 0
+	local function pairReachable(color)
+		local endpoints = endpointsMap[color]
+		local startIndex = indexOf(endpoints[1].row, endpoints[1].col)
+		local goalIndex = indexOf(endpoints[2].row, endpoints[2].col)
+		markId += 1
+		local queue, head = {startIndex}, 1
+		marks[startIndex] = markId
+		while head <= #queue do
+			if not checkpoint() then return false end
+			local current = queue[head]
+			head += 1
+			if current == goalIndex then return true end
+			for _, direction in ipairs(directions) do
+				local nextIndex = neighbor(current, direction)
+				if canUse(nextIndex, color) and marks[nextIndex] ~= markId then
+					marks[nextIndex] = markId
+					queue[#queue + 1] = nextIndex
+				end
 			end
 		end
-
-		for color, endpoints in pairs(endpointsMap) do
-			local r1, c1 = endpoints[1].row, endpoints[1].col
-			local r2, c2 = endpoints[2].row, endpoints[2].col
-			grid[r1][c1].value = color
-			grid[r2][c2].value = color
+		return false
+	end
+	local function remainingReachable(remaining)
+		for _, color in ipairs(remaining) do
+			if not pairReachable(color) then return false end
 		end
-
-		local solution = {}
-		local result = backtrack_solve(colorsToSolve, endpointsMap, grid, solution, rows, cols, 0, maxDepth)
-
-		if result then
-			return result
-		end
+		return not aborted
 	end
 
+	local function routesFor(color, maximum)
+		local endpoints = endpointsMap[color]
+		local startIndex = indexOf(endpoints[1].row, endpoints[1].col)
+		local goalIndex = indexOf(endpoints[2].row, endpoints[2].col)
+		local routes, path, used = {}, {startIndex}, {[startIndex] = true}
+		local function visit(current)
+			if not checkpoint() or #routes >= maximum then return end
+			if current == goalIndex then
+				local copy = table.create(#path)
+				for i, value in ipairs(path) do copy[i] = value end
+				routes[#routes + 1] = copy
+				return
+			end
+			local options = {}
+			for _, direction in ipairs(directions) do
+				local nextIndex = neighbor(current, direction)
+				if nextIndex and not used[nextIndex] and canUse(nextIndex, color) then
+					options[#options + 1] = nextIndex
+				end
+			end
+			table.sort(options, function(a, b) return distance(a, goalIndex) < distance(b, goalIndex) end)
+			for _, nextIndex in ipairs(options) do
+				used[nextIndex] = true
+				path[#path + 1] = nextIndex
+				visit(nextIndex)
+				path[#path] = nil
+				used[nextIndex] = nil
+				if aborted or #routes >= maximum then return end
+			end
+		end
+		visit(startIndex)
+		return routes
+	end
+	local function applyRoute(route, color)
+		for i = 2, #route - 1 do board[route[i]] = color end
+	end
+	local function undoRoute(route)
+		for i = 2, #route - 1 do board[route[i]] = 0 end
+	end
 
-	return nil
+	local search
+	search = function(remaining, solution)
+		if aborted then return false end
+		if #remaining == 0 then return true end
+		local selectedIndex, selectedRoutes
+		for index, color in ipairs(remaining) do
+			local routes = routesFor(color, SOLVER_LIMITS.maxRoutesPerPair)
+			if aborted or #routes == 0 then return false end
+			if not selectedRoutes or #routes < #selectedRoutes then
+				selectedIndex, selectedRoutes = index, routes
+				if #routes == 1 then break end
+			end
+		end
+		local nextRemaining = {}
+		for index, color in ipairs(remaining) do
+			if index ~= selectedIndex then nextRemaining[#nextRemaining + 1] = color end
+		end
+		local color = remaining[selectedIndex]
+		for _, route in ipairs(selectedRoutes) do
+			applyRoute(route, color)
+			solution[color] = route
+			if remainingReachable(nextRemaining) and search(nextRemaining, solution) then return true end
+			solution[color] = nil
+			undoRoute(route)
+			if aborted then return false end
+		end
+		return false
+	end
+
+	local solution = {}
+	if not search(colors, solution) or aborted then return nil end
+	local converted = {}
+	for color, route in pairs(solution) do
+		converted[color] = {}
+		for i, index in ipairs(route) do
+			converted[color][i] = {rowOf(index), ((index - 1) % cols) + 1}
+		end
+	end
+	return converted
 end
-
-
 local function lerp(a, b, t)
 	return a + (b - a) * t
 end
@@ -1376,23 +1170,30 @@ local function SolveGridPuzzle()
 	end
 
 	_G.IsDrawing = true
-	local cells, circles, gridSize = parse_grid()
 
-	local endpointsMap = {}
-	for pairNum, endpoints in pairs(circles) do
-		if #endpoints == 2 then
-			endpointsMap[pairNum] = endpoints
+	-- Always clear the busy flag, even if the puzzle UI disappears mid-solve.
+	local ok, err = pcall(function()
+		local cells, circles, gridSize = parse_grid()
+
+		local endpointsMap = {}
+		for pairNum, endpoints in pairs(circles) do
+			if #endpoints == 2 then
+				endpointsMap[pairNum] = endpoints
+			end
 		end
+
+		local solution = solveGridBounded(endpointsMap, gridSize, gridSize)
+		if solution then
+			draw(cells, solution)
+		end
+	end)
+
+	if not ok then
+		warn("Auto Generator error: " .. tostring(err))
 	end
 
-
-	local solution = solve(endpointsMap, gridSize, gridSize)
-
-	if solution then
-		draw(cells, solution)
-	end
-
-	task.wait(.25)
+	-- Keep a held solve key from starting another pass on the same puzzle UI.
+	task.wait(0.25)
 	_G.IsDrawing = false
 end
 
@@ -2442,10 +2243,14 @@ local function updateESPPositions()
 		local espData = espDrawings[i]
 		local objectsPositions = {}
 
-		if not espData then continue end
+		if not espData then
+			continue
+		end
 
 		local isValid = false
-		if espData.root and espData.root:IsDescendantOf(workspace) 
+
+		if espData.root
+			and espData.root:IsDescendantOf(workspace)
 			and espData.root.Name == espData.originalName then
 
 			for _, obj in pairs(espData.objects) do
@@ -2457,10 +2262,11 @@ local function updateESPPositions()
 		end
 
 		if not isValid then
-			for _, v in pairs(espData.uiparts) do
-				v.Visible = false
-				v:Remove()
+			for _, drawing in pairs(espData.uiparts) do
+				drawing.Visible = false
+				drawing:Remove()
 			end
+
 			table.remove(espDrawings, i)
 			continue
 		end
@@ -2468,65 +2274,105 @@ local function updateESPPositions()
 		for _, object in pairs(espData.objects) do
 			if object and object:IsDescendantOf(workspace) then
 				local objPos = object.Position
+
 				if objPos then
 					local pos = WorldToScreen(object.Position)
+
 					if pos.X ~= 0 or pos.Y ~= 0 then
 						table.insert(objectsPositions, pos)
 					end
-				else
-					continue
 				end
-
 			end
 		end
 
 		local cornerTopLeft = Vector2.new(9999, 9999)
 		local cornerBottomRight = Vector2.new(0, 0)
+
 		for _, position in objectsPositions do
 			if position.X < cornerTopLeft.X then
 				cornerTopLeft = Vector2.new(position.X, cornerTopLeft.Y)
 			end
+
 			if position.Y < cornerTopLeft.Y then
 				cornerTopLeft = Vector2.new(cornerTopLeft.X, position.Y)
 			end
+
 			if position.X > cornerBottomRight.X then
 				cornerBottomRight = Vector2.new(position.X, cornerBottomRight.Y)
 			end
+
 			if position.Y > cornerBottomRight.Y then
 				cornerBottomRight = Vector2.new(cornerBottomRight.X, position.Y)
 			end
 		end
 
 		local function visibleParts()
-			for _, v in pairs(espData.uiparts) do
-				v.Visible = true
+			for _, drawing in pairs(espData.uiparts) do
+				drawing.Visible = true
 			end
 		end
 
 		local draw = {
 			["Character"] = function()
+				local width = cornerBottomRight.X - cornerTopLeft.X
+				local height = cornerBottomRight.Y - cornerTopLeft.Y
+
 				espData.uiparts.main.Position = cornerTopLeft
-				espData.uiparts.main.Size = Vector2.new(cornerBottomRight.X - cornerTopLeft.X, cornerBottomRight.Y - cornerTopLeft.Y)
+				espData.uiparts.main.Size = Vector2.new(width, height)
+
 				espData.uiparts.outlineOut.Position = cornerTopLeft - Vector2.new(1, 1)
-				espData.uiparts.outlineOut.Size = Vector2.new(cornerBottomRight.X - cornerTopLeft.X, cornerBottomRight.Y - cornerTopLeft.Y) + Vector2.new(2, 2)
+				espData.uiparts.outlineOut.Size = Vector2.new(width, height) + Vector2.new(2, 2)
+
 				espData.uiparts.outlineIn.Position = cornerTopLeft + Vector2.new(1, 1)
-				espData.uiparts.outlineIn.Size = Vector2.new(cornerBottomRight.X - cornerTopLeft.X, cornerBottomRight.Y - cornerTopLeft.Y) - Vector2.new(2, 2)
-				espData.uiparts.title.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y - 15)
-				espData.uiparts.health.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerBottomRight.Y + 15)
-				espData.uiparts.health.Text = espData.root.Humanoid.Health .. "/" .. espData.root.Humanoid.MaxHealth .. " HP"
+				espData.uiparts.outlineIn.Size = Vector2.new(width, height) - Vector2.new(2, 2)
+
+				local centerX = cornerTopLeft.X + width / 2
+
+				espData.uiparts.title.Position =
+					Vector2.new(centerX, cornerTopLeft.Y - 15)
+
+				espData.uiparts.health.Position =
+					Vector2.new(centerX, cornerBottomRight.Y + 15)
+
+				local humanoid = espData.root:FindFirstChildOfClass("Humanoid")
+
+				if humanoid then
+					espData.uiparts.health.Text =
+						humanoid.Health .. "/" .. humanoid.MaxHealth .. " HP"
+				else
+					espData.uiparts.health.Text = "?"
+				end
+
 				visibleParts()
 			end,
 
 			["Object"] = function()
-				espData.uiparts.title.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2)
+				local center = Vector2.new(
+					cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2,
+					cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2
+				)
+
+				espData.uiparts.title.Position = center
+
 				visibleParts()
 			end,
 
 			["Generator"] = function()
-				espData.uiparts.title.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2)
-				espData.uiparts.progress.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2) + Vector2.new(0, 13)
-				if espData.root:FindFirstChild("Progress") then
-					local progress = math.round(espData.root:FindFirstChild("Progress").Value / 100 * 4) .. "/4"
+				local center = Vector2.new(
+					cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2,
+					cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2
+				)
+
+				espData.uiparts.title.Position = center
+				espData.uiparts.progress.Position =
+					center + Vector2.new(0, 13)
+
+				local progressValue = espData.root:FindFirstChild("Progress")
+
+				if progressValue then
+					local progress =
+						math.round(progressValue.Value / 100 * 4) .. "/4"
+
 					if progress == "4/4" then
 						espData.uiparts.progress.Text = "Completed"
 					else
@@ -2535,288 +2381,534 @@ local function updateESPPositions()
 				else
 					espData.uiparts.progress.Text = "0/4"
 				end
+
 				visibleParts()
 			end,
 
 			["LineObject"] = function()
-				espData.uiparts.title.Position = Vector2.new(cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2, cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2) - Vector2.new(0, 13)
+				local center = Vector2.new(
+					cornerTopLeft.X + (cornerBottomRight.X - cornerTopLeft.X) / 2,
+					cornerTopLeft.Y + (cornerBottomRight.Y - cornerTopLeft.Y) / 2
+				)
+
+				espData.uiparts.title.Position =
+					center - Vector2.new(0, 13)
+
 				local hook1 = espData.root:FindFirstChild("Hook1")
 				local hook2 = espData.root:FindFirstChild("Hook2")
-				if hook1 and hook2 then
-					local Pos1 = WorldToScreen(hook1.Position)
-					local Pos2 = WorldToScreen(hook2.Position)
-					if Pos1.X == 0 or Pos2.X == 0 then 
-						espData.uiparts.line.Visible = false
-						espData.uiparts.outline.Visible = false
-						return
-					else
-						espData.uiparts.line.Visible = true
-						espData.uiparts.outline.Visible = true
-						espData.uiparts.line.From = Pos1
-						espData.uiparts.line.To = Pos2
-						espData.uiparts.outline.From = Pos1
-						espData.uiparts.outline.To = Pos2
-					end
-					visibleParts()
+
+				if not hook1 or not hook2 then
+					espData.uiparts.line.Visible = false
+					espData.uiparts.outline.Visible = false
+					return
 				end
+
+				local Pos1 = WorldToScreen(hook1.Position)
+				local Pos2 = WorldToScreen(hook2.Position)
+
+				if (Pos1.X == 0 and Pos1.Y == 0)
+					or (Pos2.X == 0 and Pos2.Y == 0) then
+
+					espData.uiparts.line.Visible = false
+					espData.uiparts.outline.Visible = false
+
+					return
+				end
+
+				espData.uiparts.line.Visible = true
+				espData.uiparts.outline.Visible = true
+
+				espData.uiparts.line.From = Pos1
+				espData.uiparts.line.To = Pos2
+
+				espData.uiparts.outline.From = Pos1
+				espData.uiparts.outline.To = Pos2
+
+				visibleParts()
 			end,
 		}
 
 		if #objectsPositions > 0 then
-			draw[espData.class]()
+			local drawFunction = draw[espData.class]
+
+			if drawFunction then
+				drawFunction()
+			end
 
 			if espData.class == "Character" then
 				espData.uiparts.title.Text = espData.originalName
 			else
 				local name = getNamefromObjectName(espData.root.Name)
+
 				if name ~= "None" then
 					if name == "CUSTOM1" then
 						local start = espData.root.Name:find("RespawnLocation")
-						local prefix = espData.root.Name:sub(1, start - 1)
-						name = prefix .. "'s Ritual" 
-					end
-					espData.uiparts.title.Text = name
-				else
-					if espData and espData.uiparts then
-						for _, drawing in pairs(espData.uiparts) do
-							drawing.Visible = false
-							drawing:Remove()
+
+						if start then
+							local prefix = espData.root.Name:sub(1, start - 1)
+							name = prefix .. "'s Ritual"
 						end
 					end
+
+					espData.uiparts.title.Text = name
+				else
+					for _, drawing in pairs(espData.uiparts) do
+						drawing.Visible = false
+						drawing:Remove()
+					end
+
 					table.remove(espDrawings, i)
 				end
 			end
 		else
-			for _, v in pairs(espData.uiparts) do
-				v.Visible = false
-			end
-		end
-
-	end
-end
-
-local function isAddedToESP(object)
-	for _, item in ipairs(espDrawings) do
-		if item and item.root and item.root.Address == object.Address then
-			if item.root:IsDescendantOf(workspace) 
-				and item.originalName == object.Name then
-
-				local active = false
-				for _, part in pairs(item.objects) do
-					if part and part:IsDescendantOf(item.root) then
-						active = true
-						break
-					end
-				end
-				if active then
-					return true
-				end
+			for _, drawing in pairs(espData.uiparts) do
+				drawing.Visible = false
 			end
 		end
 	end
-	return false
 end
 
-local function espAdd(class:string, title:string, objects, root)
+
+local function espAdd(class: string, title: string, objects, root)
+	-- Keep the current drawing for objects found by consecutive scans instead of
+	-- destroying and recreating it every scan. Recreating Drawing objects caused
+	-- the ESP to visibly flash.
+	for _, espData in ipairs(espDrawings) do
+		if espData.root == root then
+			espData.lastSeen = espScanId
+			return
+		end
+	end
 
 	local cleanobjectlist = {}
 
-	for i, object in objects do
-		if table.find(partWhitelist, object.Name) and (object.ClassName == "MeshPart" or object.ClassName == "Part" or object.ClassName =="UnionOperation") then
+	for _, object in objects do
+		if table.find(partWhitelist, object.Name)
+			and (
+				object.ClassName == "MeshPart"
+					or object.ClassName == "Part"
+					or object.ClassName == "UnionOperation"
+			) then
+
 			table.insert(cleanobjectlist, object)
 		end
 	end
 
 	local classes = {
 		["Survivor"] = function()
-			espFuncs["Character"](cleanobjectlist, config["SurvivorColor"], title, root)
+			espFuncs["Character"](
+				cleanobjectlist,
+				config["SurvivorColor"],
+				title,
+				root
+			)
 		end,
 
 		["Killer"] = function()
-			espFuncs["Character"](cleanobjectlist, config["KillerColor"], title, root)
+			espFuncs["Character"](
+				cleanobjectlist,
+				config["KillerColor"],
+				title,
+				root
+			)
 		end,
 
 		["Generator"] = function()
-			espFuncs["Generator"](cleanobjectlist, config["GeneratorColor"], title, root)
+			espFuncs["Generator"](
+				cleanobjectlist,
+				config["GeneratorColor"],
+				title,
+				root
+			)
 		end,
 
 		["FakeGenerator"] = function()
-			espFuncs["Object"](cleanobjectlist, config["FakeGeneratorColor"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["FakeGeneratorColor"],
+				title,
+				root
+			)
 		end,
 
 		["Cola"] = function()
-			espFuncs["Object"](cleanobjectlist, config["BloxyColaColor"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["BloxyColaColor"],
+				title,
+				root
+			)
 		end,
 
 		["Medkit"] = function()
-			espFuncs["Object"](cleanobjectlist, config["MedkitColor"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["MedkitColor"],
+				title,
+				root
+			)
 		end,
 
 		["VeeGraffiti"] = function()
-			espFuncs["Object"](cleanobjectlist, config["GraffitiColor"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["GraffitiColor"],
+				title,
+				root
+			)
 		end,
 
 		["TaphTripmine"] = function()
-			espFuncs["Object"](cleanobjectlist, config["TripmineColor"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["TripmineColor"],
+				title,
+				root
+			)
 		end,
 
 		["TaphTripwire"] = function()
-			espFuncs["LineObject"](cleanobjectlist, config["TripmineColor"], title, root)
+			espFuncs["LineObject"](
+				cleanobjectlist,
+				config["TripwireColor"],
+				title,
+				root
+			)
 		end,
 
 		["BuildermanSentry"] = function()
-			espFuncs["Object"](cleanobjectlist, config["BuildermanSentry"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["BuildermanSentry"],
+				title,
+				root
+			)
 		end,
 
 		["BuildermanDispenser"] = function()
-			espFuncs["Object"](cleanobjectlist, config["BuildermanDispenser"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["BuildermanDispenser"],
+				title,
+				root
+			)
 		end,
 
 		["JDFootprint"] = function()
-			espFuncs["Object"](cleanobjectlist, config["JohnDoeFootprint"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["JohnDoeFootprint"],
+				title,
+				root
+			)
 		end,
 
 		["CKMinion"] = function()
-			espFuncs["Object"](cleanobjectlist, config["CKMinion"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["CKMinion"],
+				title,
+				root
+			)
 		end,
 
 		["1xZombie"] = function()
-			espFuncs["Object"](cleanobjectlist, config["1xZombie"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["1xZombie"],
+				title,
+				root
+			)
 		end,
 
 		["TwoTimeRespawn"] = function()
-			espFuncs["Object"](cleanobjectlist, config["TwoTimeRespawn"], title, root)
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["TwoTimeRespawn"],
+				title,
+				root
+			)
 		end,
 	}
 
-	classes[class]()
+	local addFunction = classes[class]
+
+	if addFunction then
+		addFunction()
+		espDrawings[#espDrawings].lastSeen = espScanId
+	end
 end
 
-local function addObjects() -- this is so messy but it works so I Don't Care!
 
-	local map = workspace.Map.Ingame:FindFirstChild("Map")
+local function addObjects()
+	espScanId += 1
 
-	if not map then
-		cleanup()
+	local mapFolder = workspace:FindFirstChild("Map")
+
+	if not mapFolder then
 		return
 	end
 
+	local ingame = mapFolder:FindFirstChild("Ingame")
+
+	if not ingame then
+		return
+	end
+
+	local map = ingame:FindFirstChild("Map")
+
+	if not map then
+		return
+	end
+
+	-- map objects
 	for _, object in map:GetChildren() do
-		if object:IsA("Model") and object.Name == "Generator" and config["Toggle_GeneratorESP"] then
-			if not isAddedToESP(object) then
-				espAdd("Generator", "Generator", object:GetChildren(), object)
-			end
+
+		if object:IsA("Model")
+			and object.Name == "Generator"
+			and config["Toggle_GeneratorESP"] then
+
+			espAdd(
+				"Generator",
+				"Generator",
+				object:GetChildren(),
+				object
+			)
 		end
 
-		if object:IsA("Model") and object.Name == "FakeGenerator" and config["Toggle_GeneratorESP"] then
-			if not isAddedToESP(object) then
-				espAdd("FakeGenerator", "Fake Generator", object:GetChildren(), object)
-			end
+		if object:IsA("Model")
+			and object.Name == "FakeGenerator"
+			and config["Toggle_GeneratorESP"] then
+
+			espAdd(
+				"FakeGenerator",
+				"Fake Generator",
+				object:GetChildren(),
+				object
+			)
 		end
 
-		if object:IsA("Tool") and object.Name == "Medkit" and config["Toggle_MedkitESP"] then
-			if not isAddedToESP(object) then
-				espAdd("Medkit", "Medkit", object:GetChildren(), object)
-			end
+		if object:IsA("Tool")
+			and object.Name == "Medkit"
+			and config["Toggle_MedkitESP"] then
+
+			espAdd(
+				"Medkit",
+				"Medkit",
+				object:GetChildren(),
+				object
+			)
 		end
 
-		if object:IsA("Tool") and object.Name == "BloxyCola" and config["Toggle_BloxyColaESP"] then
-			if not isAddedToESP(object) then
-				espAdd("Cola", "Bloxy Cola", object:GetChildren(), object)
+		if object:IsA("Tool")
+			and object.Name == "BloxyCola"
+			and config["Toggle_BloxyColaESP"] then
+
+			espAdd(
+				"Cola",
+				"Bloxy Cola",
+				object:GetChildren(),
+				object
+			)
+		end
+	end
+
+	-- ingame objects
+	for _, object in ingame:GetChildren() do
+
+		if object:IsA("Part")
+			and string.find(object.Name, "RespawnLocation")
+			and config["Toggle_TwoTimeRespawnESP"] then
+
+			espAdd(
+				"TwoTimeRespawn",
+				"Some Dude's Respawn Location",
+				{object},
+				object
+			)
+		end
+
+		if object:IsA("Part")
+			and object.Name == "GraffitiCL"
+			and config["Toggle_GraffitiESP"] then
+
+			espAdd(
+				"VeeGraffiti",
+				"Veeronica Graffiti",
+				{object},
+				object
+			)
+		end
+
+		if object:IsA("Model")
+			and object.Name == "SubspaceTripmine"
+			and config["Toggle_TripmineESP"] then
+
+			espAdd(
+				"TaphTripmine",
+				"Tripmine",
+				object:GetChildren(),
+				object
+			)
+		end
+
+		if object:IsA("Model")
+			and string.find(object.Name, "TaphTripwire")
+			and config["Toggle_TripwireESP"] then
+
+			espAdd(
+				"TaphTripwire",
+				"Tripwire",
+				object:GetChildren(),
+				object
+			)
+		end
+
+		if object:IsA("Model")
+			and object.Name == "BuildermanSentry"
+			and config["Toggle_BuildermanSentryESP"] then
+
+			espAdd(
+				"BuildermanSentry",
+				"Sentry",
+				object:GetChildren(),
+				object
+			)
+		end
+
+		if object:IsA("Model")
+			and object.Name == "BuildermanDispenser"
+			and config["Toggle_BuildermanDispenserESP"] then
+
+			espAdd(
+				"BuildermanDispenser",
+				"Dispenser",
+				object:GetChildren(),
+				object
+			)
+		end
+
+		if object:IsA("Model")
+			and table.find(ckClones, object.Name)
+			and object:FindFirstChild("Humanoid")
+			and config["Toggle_CKMinionESP"] then
+
+			debugPrint("Added c00lkidd minion to ESP")
+
+			espAdd(
+				"CKMinion",
+				"c00lkidd Minion",
+				object:GetChildren(),
+				object
+			)
+		end
+
+		if object:IsA("Model")
+			and object.Name == "1x1x1x1Zombie"
+			and config["Toggle_1xZombieESP"] then
+
+			espAdd(
+				"1xZombie",
+				"1x1x1x1 Minion",
+				object:GetChildren(),
+				object
+			)
+		end
+
+		if object:IsA("Folder")
+			and string.find(object.Name, "Shadows")
+			and config["Toggle_JohnDoeFootprintESP"] then
+
+			for _, part in object:GetChildren() do
+				espAdd(
+					"JDFootprint",
+					"Footprint",
+					{part},
+					part
+				)
 			end
 		end
 	end
 
-	for _, object in workspace.Map.Ingame:GetChildren() do
+	-- killers
+	local playersFolder = workspace:FindFirstChild("Players")
 
-		if object:IsA("Part") and string.find(object.Name, "RespawnLocation") and config["Toggle_TwoTimeRespawnESP"] then
-			if not isAddedToESP(object) then
-				espAdd("TwoTimeRespawn", "Some Dude's Respawn Location", {object}, object)
+	if playersFolder then
+		local killers = playersFolder:FindFirstChild("Killers")
+
+		if killers and config["Toggle_KillerESP"] then
+			for _, object in killers:GetChildren() do
+				if object:IsA("Model")
+					and object ~= player.Character then
+
+					espAdd(
+						"Killer",
+						object.Name,
+						object:GetDescendants(),
+						object
+					)
+				end
 			end
 		end
 
-		if object:IsA("Part") and object.Name == "GraffitiCL" and config["Toggle_GraffitiESP"] then
-			if not isAddedToESP(object) then
-				espAdd("VeeGraffiti", "Veeronica Graffiti", {object}, object)
-			end
-		end
+		-- survivors
+		local survivors = playersFolder:FindFirstChild("Survivors")
 
-		if object:IsA("Model") and object.Name == "SubspaceTripmine" and config["Toggle_TripmineESP"] then
-			if not isAddedToESP(object) then
-				espAdd("TaphTripmine", "Tripmine", object:GetChildren(), object)
-			end
-		end
+		if survivors and config["Toggle_SurvivorESP"] then
+			for _, object in survivors:GetChildren() do
+				if object:IsA("Model")
+					and object ~= player.Character then
 
-		if object:IsA("Model") and string.find(object.Name, "TaphTripwire") and config["Toggle_TripwireESP"] then
-			if not isAddedToESP(object) then
-				espAdd("TaphTripwire", "Tripwire", object:GetChildren(), object)
-			end
-		end
-
-		if object:IsA("Model") and object.Name == "BuildermanSentry" and config["Toggle_BuildermanSentryESP"] then
-			if not isAddedToESP(object) then
-				espAdd("BuildermanSentry", "Sentry", object:GetChildren(), object)
-			end
-		end
-
-		if object:IsA("Model") and object.Name == "BuildermanDispenser" and config["Toggle_BuildermanDispenserESP"] then
-			if not isAddedToESP(object) then
-				espAdd("BuildermanDispenser", "Dispenser", object:GetChildren(), object)
-			end
-		end
-
-		if object:IsA("Model") and table.find(ckClones, object.Name) and object:FindFirstChild("Humanoid") and config["Toggle_CKMinionESP"] then
-			debugPrint("Added c00lkidd minion to ESP")
-			if not isAddedToESP(object) then
-				espAdd("CKMinion", "c00lkidd Minion", object:GetChildren(), object)
-			end
-		end
-
-		if object:IsA("Model") and object.Name == "1x1x1x1Zombie" and config["Toggle_1xZombieESP"] then
-			if not isAddedToESP(object) then
-				espAdd("1xZombie", "1x1x1x1 Minion", object:GetChildren(), object)
-			end
-		end
-
-		if object:IsA("Folder") and string.find(object.Name, "Shadows") and config["Toggle_JohnDoeFootprintESP"] then
-			for _, part in object:GetChildren() do
-				if not isAddedToESP(part) then
-					espAdd("JDFootprint", "Footprint", {part}, part)
+					espAdd(
+						"Survivor",
+						object.Name,
+						object:GetDescendants(),
+						object
+					)
 				end
 			end
 		end
 	end
 
-	for _, object in workspace.Players.Killers:GetChildren() do
-		if object:IsA("Model") and config["Toggle_KillerESP"] then
-			if not isAddedToESP(object) and object.Address ~= player.Character.Address then
-				espAdd("Killer", object.Name, object:GetDescendants(), object)
-			end
-		end
-	end
-
-	for _, object in workspace.Players.Survivors:GetChildren() do
-		if object:IsA("Model") and config["Toggle_SurvivorESP"] then
-			if not isAddedToESP(object) and object.Address ~= player.Character.Address then
-				espAdd("Survivor", object.Name, object:GetDescendants(), object)
-			end
-		end
-	end
-
+	-- tools directly under workspace
 	for _, object in workspace:GetChildren() do
-		if object:IsA("Tool") and object.Name == "Medkit" and config["Toggle_MedkitESP"] then
-			if not isAddedToESP(object) then
-				espAdd("Medkit", "Medkit", object:GetChildren(), object)
-			end
+
+		if object:IsA("Tool")
+			and object.Name == "Medkit"
+			and config["Toggle_MedkitESP"] then
+
+			espAdd(
+				"Medkit",
+				"Medkit",
+				object:GetChildren(),
+				object
+			)
 		end
 
-		if object:IsA("Tool") and object.Name == "BloxyCola" and config["Toggle_BloxyColaESP"] then
-			if not isAddedToESP(object) then
-				espAdd("Cola", "Bloxy Cola", object:GetChildren(), object)
-			end
+		if object:IsA("Tool")
+			and object.Name == "BloxyCola"
+			and config["Toggle_BloxyColaESP"] then
+
+			espAdd(
+				"Cola",
+				"Bloxy Cola",
+				object:GetChildren(),
+				object
+			)
 		end
 	end
 
+	-- Remove only entries that were absent from this scan (including disabled ESP types).
+	for i = #espDrawings, 1, -1 do
+		local espData = espDrawings[i]
+		if espData.lastSeen ~= espScanId then
+			for _, drawing in pairs(espData.uiparts) do
+				drawing.Visible = false
+				drawing:Remove()
+			end
+			table.remove(espDrawings, i)
+		end
+	end
 end
 
 local function veeAT()
@@ -3066,18 +3158,33 @@ local function TickFast()
 
 end
 
+local solveKeyWasDown = false
+
 local function TickSlow()
 	addObjects()
-	if iskeypressed(config["Keybind_SolveGen"]) then
-		if game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI') then
-			if memory_read("float", game.Players.LocalPlayer.PlayerGui:FindFirstChild('PuzzleUI'):FindFirstChild('Container').Address + memoryOffsets.FrameSizeX) > 0.49 then
-				Grid = game.Players.LocalPlayer.PlayerGui.PuzzleUI.Container.GridHolder.Grid
-				task.spawn(function()
-					SolveGridPuzzle()
-				end)
-			end
-		end	
+
+	local solveKeyDown = iskeypressed(config["Keybind_SolveGen"])
+	if solveKeyDown and not solveKeyWasDown and not _G.IsDrawing then
+		local puzzleUI = player.PlayerGui:FindFirstChild("PuzzleUI")
+		local container = puzzleUI and puzzleUI:FindFirstChild("Container")
+		local gridHolder = container and container:FindFirstChild("GridHolder")
+		local puzzleGrid = gridHolder and gridHolder:FindFirstChild("Grid")
+		local visible = false
+
+		if container then
+			local success, isVisible = pcall(function()
+				return memory_read("float", container.Address + memoryOffsets.FrameSizeX) > 0.49
+			end)
+			visible = success and isVisible
+		end
+
+		if visible and puzzleGrid then
+			Grid = puzzleGrid
+			task.spawn(SolveGridPuzzle)
+		end
 	end
+
+	solveKeyWasDown = solveKeyDown
 end
 
 abInit()
