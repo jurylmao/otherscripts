@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.2.1"
+local vn = "2.2.2"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -163,8 +163,9 @@ local memoryOffsets = {
 	--Ping = get_offsets()["Ping"],
 	Text = offsets.Offsets.GuiObject.Text,
 	ElementVisible = offsets.Offsets.GuiObject.Visible,
-	Adornee = offsets.Offsets.Misc.Adornee,
-	FrameSizeX = offsets.Offsets.GuiObject.Size + 44
+	Adornee = offsets.Offsets.Misc.Value,
+	FrameSizeX = offsets.Offsets.GuiObject.Size + 44,
+	BaseColor3 = offsets.Offsets.SurfaceAppearance.ColorMap
 }
 -- ck clones setup
 local ckClones = {}
@@ -2923,11 +2924,21 @@ end
 local function veeAT()
 	local highlight = game.ReplicatedStorage.Assets.Survivors.Veeronica.Behavior:FindFirstChildOfClass("Highlight")
 	if highlight and config["Toggle_VeeTrick"] then
-		local R = memory_read("float", highlight.Address + 0xE0 + 0)
-		local G = memory_read("float", highlight.Address + 0xE0 + 4)
-		local B = memory_read("float", highlight.Address + 0xE0 + 8)
+		local R = memory_read("float", highlight.Address + memoryOffsets.BaseColor3 + 0)
+		local G = memory_read("float", highlight.Address + memoryOffsets.BaseColor3 + 4)
+		local B = memory_read("float", highlight.Address + memoryOffsets.BaseColor3 + 8)
 		local Adornee = memory_read("uintptr_t", highlight.Address + memoryOffsets.Adornee)
 		local trickReadyColor = Color3.fromRGB(241, 85, 255)
+		if Adornee == game.Players.LocalPlayer.Character.Address then
+			print("Yes.")
+		end
+		
+		local character = game.Players.LocalPlayer.Character
+
+		print("highlight:", highlight.Address)
+		print("adornee offset:", memoryOffsets.Adornee)
+		print("adornee:", Adornee)
+		print("character:", character.Address)
 		if R == trickReadyColor.R and G == trickReadyColor.G and B == trickReadyColor.B and Adornee == game.Players.LocalPlayer.Character.Address then
 			task.spawn(function()
 				keypress(0x20)
