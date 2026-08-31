@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.2.2"
+local vn = "2.2.3"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -1144,9 +1144,11 @@ local function draw(cells, solutions)
 
 		for i = 2, #path do
 			local s, r = pcall(function()
-				local pos = cells[path[i][1]][path[i][2]].position
-				local targetX = pos.X + 45
-				local targetY = pos.Y + 45
+				local cell = cells[path[i][1]][path[i][2]]
+				local pos = cell.position
+				-- use the actual center of the cell (scales with any resolution/UI scale)
+				local targetX = pos.X + cell.frame.AbsoluteSize.X / 2
+				local targetY = pos.Y + cell.frame.AbsoluteSize.Y / 2
 
 				-- Smoothly move between cells (10 small lerp steps)
 				smooth_move(x, y, targetX, targetY, config["Number_SolveGenSpeed"], 0.001)
