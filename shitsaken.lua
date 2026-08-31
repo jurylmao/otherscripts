@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.2"
+local vn = "2.2.1"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -112,7 +112,7 @@ end
 
 local function SaveConfig()
 	local dataToSave = {}
-
+	notify("shitsaken", "saved config", 5)
 	for k, v in pairs(config) do
 		if typeof(v) == "Color3" then
 			dataToSave[k] = {Type = "Color3", data = colorToTable(v)}
@@ -637,6 +637,7 @@ function gui:AddObjectToSection(section, data)
 							task.wait(0)
 						end
 						cleanup()
+						SaveConfig()
 						return
 					else
 						self.draggable = true
@@ -895,7 +896,6 @@ function gui:AddSection(name, selected, objects)
 						task.wait(0)
 					end
 					self.draggable = true
-					SaveConfig()
 				end)
 
 				return
@@ -2072,7 +2072,7 @@ local partWhitelist = {
 	-- OBJECTs
 	"SubspaceBox",
 	"ItemRoot",
-	"GraffitiCL",
+	"Graffiti",
 	"Hook1",
 	"Hook2",
 	"Wire",
@@ -2084,7 +2084,7 @@ local partWhitelist = {
 
 local nameToTitle = {
 	["FakeGenerator"] = "Fake Generator",
-	["GraffitiCl"] = "Graffiti",
+	["Graffiti"] = "Graffiti",
 	["TaphTripwire"] = "Tripwire",
 	["SubspaceTripmine"] = "Tripmine",
 	["BloxyCola"] = "Cola",
@@ -2254,7 +2254,7 @@ local function updateESPPositions()
 			and espData.root.Name == espData.originalName then
 
 			for _, obj in pairs(espData.objects) do
-				if obj and obj:IsDescendantOf(espData.root) then
+				if obj and (obj == espData.root or obj:IsDescendantOf(espData.root)) then
 					isValid = true
 					break
 				end
@@ -2437,6 +2437,11 @@ local function updateESPPositions()
 
 			if espData.class == "Character" then
 				espData.uiparts.title.Text = espData.originalName
+			elseif espData.root.Name == "Hitbox" then
+				-- Graffiti's root is the generic "Hitbox" part (espData.class is always
+				-- "Object" here, not "VeeGraffiti" -- espFuncs.Object hardcodes that for
+				-- draw dispatch), so it won't match anything in nameToTitle. Title text
+				-- was already set correctly at creation time -- leave it alone.
 			else
 				local name = getNamefromObjectName(espData.root.Name)
 
@@ -2468,7 +2473,7 @@ local function updateESPPositions()
 	end
 end
 
-
+-- class, title, objects, root
 local function espAdd(class: string, title: string, objects, root)
 	-- Keep the current drawing for objects found by consecutive scans instead of
 	-- destroying and recreating it every scan. Recreating Drawing objects caused
@@ -2483,7 +2488,9 @@ local function espAdd(class: string, title: string, objects, root)
 	local cleanobjectlist = {}
 
 	for _, object in objects do
-		if table.find(partWhitelist, object.Name)
+		if class == "TwoTimeRespawn" or class == "VeeGraffiti" then
+			table.insert(cleanobjectlist, object)
+		elseif table.find(partWhitelist, object.Name)
 			and (
 				object.ClassName == "MeshPart"
 					or object.ClassName == "Part"
@@ -2655,7 +2662,7 @@ local function addObjects()
 		return
 	end
 
-	local map = ingame:FindFirstChild("Map")
+	local map = ingame:FindFirstChild("Map")	
 
 	if not map then
 		return
@@ -2716,27 +2723,29 @@ local function addObjects()
 	-- ingame objects
 	for _, object in ingame:GetChildren() do
 
-		if object:IsA("Part")
-			and string.find(object.Name, "RespawnLocation")
+		local ritualOwner = object.Name:match("^(.+)RespawnLocation$")
+		if object:IsA("BasePart")
+			and ritualOwner
 			and config["Toggle_TwoTimeRespawnESP"] then
-
 			espAdd(
 				"TwoTimeRespawn",
-				"Some Dude's Respawn Location",
+				ritualOwner .. "'s Ritual",
 				{object},
 				object
 			)
 		end
 
-		if object:IsA("Part")
-			and object.Name == "GraffitiCL"
+		local graffitiOwner = object.Name:match("^(.+)Spray$")
+		local graffitiHitbox = object:FindFirstChild("Hitbox")
+		if object:IsA("Model")
+			and graffitiOwner
+			and graffitiHitbox
 			and config["Toggle_GraffitiESP"] then
-
 			espAdd(
 				"VeeGraffiti",
-				"Veeronica Graffiti",
-				{object},
-				object
+				graffitiOwner .. "'s Graffiti",
+				{graffitiHitbox},
+				graffitiHitbox
 			)
 		end
 
