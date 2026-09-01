@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.2.3"
+local vn = "2.2.4"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -29,6 +29,8 @@ local config = {
 	["TwoTimeRespawn"] = Color3.fromRGB(255, 255, 255),
 	["CKMinion"] = Color3.fromRGB(170, 0, 0),
 	["1xZombie"] = Color3.fromRGB(0, 170, 0),
+	["AzureBulbColor"] = Color3.fromRGB(238, 23, 255),
+	["AzureVineColor"] = Color3.fromRGB(238, 23, 255),
 
 
 
@@ -51,6 +53,9 @@ local config = {
 	["Keybind_SolveGen"] = 0x20,
 	["Toggle_SolveGen"] = true,
 	["Number_SolveGenSpeed"] = 5,
+
+	--Azure
+	["Toggle_AzureQTE"] = true,
 
 	--General
 	["Toggle_VeeTrick"] = true,
@@ -80,6 +85,8 @@ local config = {
 	["Toggle_TwoTimeRespawnESP"] = true,
 	["Toggle_CKMinionESP"] = true,
 	["Toggle_1xZombieESP"] = true,
+	["Toggle_AzureBulbESP"] = true,
+	["Toggle_AzureVineESP"] = true,
 
 	--SpeedHack
 	["Toggle_SpeedHack"] = false,
@@ -112,7 +119,6 @@ end
 
 local function SaveConfig()
 	local dataToSave = {}
-	notify("shitsaken", "saved config", 5)
 	for k, v in pairs(config) do
 		if typeof(v) == "Color3" then
 			dataToSave[k] = {Type = "Color3", data = colorToTable(v)}
@@ -628,10 +634,16 @@ function gui:AddObjectToSection(section, data)
 					if is_m1_down() then
 						self.draggable = false
 						config[data.Variable] = not config[data.Variable]
-						if config[data.Variable] == true then
-							object.toggle_circle_main.Position = object.toggle_circle_right.Position
-						else
-							object.toggle_circle_main.Position = object.toggle_circle_left.Position
+						-- lerp the toggle circle to its new position
+						local target = config[data.Variable] == true and object.toggle_circle_right.Position or object.toggle_circle_left.Position
+						local startPos = object.toggle_circle_main.Position
+						for i = 1, 8 do
+							local t = i / 8
+							object.toggle_circle_main.Position = Vector2.new(
+								startPos.X + (target.X - startPos.X) * t,
+								startPos.Y + (target.Y - startPos.Y) * t
+							)
+							task.wait(0.01)
 						end
 
 						while is_m1_down() do
@@ -2440,11 +2452,12 @@ local function updateESPPositions()
 
 			if espData.class == "Character" then
 				espData.uiparts.title.Text = espData.originalName
-			elseif espData.root.Name == "Hitbox" then
-				-- Graffiti's root is the generic "Hitbox" part (espData.class is always
-				-- "Object" here, not "VeeGraffiti" -- espFuncs.Object hardcodes that for
-				-- draw dispatch), so it won't match anything in nameToTitle. Title text
-				-- was already set correctly at creation time -- leave it alone.
+			elseif espData.root.Name == "Hitbox" or espData.root.Name == "RootPart" then
+				-- Graffiti's root is the generic "Hitbox" part, and Azure Bulb/Vine's
+				-- root is "RootPart" (espData.class is always "Object" here, not the
+				-- real class name -- espFuncs.Object hardcodes that for draw dispatch),
+				-- so neither will match anything in nameToTitle. Title text was already
+				-- set correctly at creation time -- leave it alone.
 			else
 				local name = getNamefromObjectName(espData.root.Name)
 
@@ -2493,7 +2506,7 @@ local function espAdd(class: string, title: string, objects, root)
 	for _, object in objects do
 		if class == "TwoTimeRespawn" or class == "VeeGraffiti" then
 			table.insert(cleanobjectlist, object)
-		elseif table.find(partWhitelist, object.Name)
+		elseif (class == "AzureBulb" or class == "AzureVine" or table.find(partWhitelist, object.Name))
 			and (
 				object.ClassName == "MeshPart"
 					or object.ClassName == "Part"
@@ -2639,6 +2652,24 @@ local function espAdd(class: string, title: string, objects, root)
 				root
 			)
 		end,
+
+		["AzureBulb"] = function()
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["AzureBulbColor"],
+				title,
+				root
+			)
+		end,
+
+		["AzureVine"] = function()
+			espFuncs["Object"](
+				cleanobjectlist,
+				config["AzureVineColor"],
+				title,
+				root
+			)
+		end,
 	}
 
 	local addFunction = classes[class]
@@ -2761,6 +2792,33 @@ local function addObjects()
 				"Tripmine",
 				object:GetChildren(),
 				object
+			)
+		end
+
+		local bulbRoot = object:FindFirstChild("RootPart")
+		if object:IsA("Model")
+			and object.Name == "GroundBulbModel"
+			and bulbRoot
+			and config["Toggle_AzureBulbESP"] then
+
+			espAdd(
+				"AzureBulb",
+				"Seeker Bulb",
+				object:GetChildren(),
+				bulbRoot
+			)
+		end
+		local vineRoot = object:FindFirstChild("RootPart")
+		if object:IsA("Model")
+			and object.Name == "VineModel"
+			and vineRoot
+			and config["Toggle_AzureVineESP"] then
+
+			espAdd(
+				"AzureVine",
+				"Azure Vine",
+				object:GetChildren(),
+				vineRoot
 			)
 		end
 
@@ -2934,7 +2992,7 @@ local function veeAT()
 		if Adornee == game.Players.LocalPlayer.Character.Address then
 			print("Yes.")
 		end
-		
+
 		local character = game.Players.LocalPlayer.Character
 
 		print("highlight:", highlight.Address)
@@ -3022,6 +3080,201 @@ local function nosAuto() -- basically the same as old version js updated config 
 	end	
 end
 
+local azureAuto
+do
+	local ROUND_RESET_DELAY = 0.5
+	local CLICK_COOLDOWN = 0.08
+
+	local state = {
+		qte = nil,
+		zones = nil,
+		hit = {false, false, false},
+		seen = {false, false, false},
+		lastClick = {0, 0, 0},
+		waitUntil = 0,
+		finishedRound = false,
+	}
+
+	local function resetRound()
+		state.hit = {false, false, false}
+		state.seen = {false, false, false}
+		state.lastClick = {0, 0, 0}
+		state.waitUntil = 0
+		state.finishedRound = false
+	end
+
+	local function isVisible(gui)
+		if not gui then
+			return false
+		end
+
+		-- Prefer memory read since your script already uses it for GUI visibility.
+		local ok, value = pcall(function()
+			return memory_read("byte", gui.Address + memoryOffsets.ElementVisible)
+		end)
+
+		if ok and value ~= nil then
+			return value == 1 or value == true
+		end
+
+		-- Fallback to normal property access.
+		local propOk, visible = pcall(function()
+			return gui.Visible
+		end)
+
+		return propOk and visible == true
+	end
+
+	local function getXBounds(gui)
+		local ok, pos, size = pcall(function()
+			return gui.AbsolutePosition, gui.AbsoluteSize
+		end)
+
+		if not ok or not pos or not size then
+			return nil
+		end
+
+		return pos.X, pos.X + size.X
+	end
+
+	local function click()
+		task.spawn(function()
+			local ok = false
+
+			if type(mouse1click) == "function" then
+				ok = pcall(mouse1click)
+			end
+
+			if not ok then
+				mouse1press()
+				task.wait(0.02)
+				mouse1release()
+			end
+		end)
+	end
+
+	function azureAuto()
+		if not config["Toggle_AzureQTE"] then
+			if state.qte then
+				state.qte = nil
+				state.zones = nil
+				resetRound()
+			end
+			return
+		end
+
+		local qte
+		do
+			local ok, result = pcall(function()
+				return player.PlayerGui.TemporaryUI:FindFirstChild("QTE")
+			end)
+
+			if ok then
+				qte = result
+			end
+		end
+
+		if not qte then
+			if state.qte then
+				state.qte = nil
+				state.zones = nil
+				resetRound()
+			end
+			return
+		end
+
+		local line = qte:FindFirstChild("Line")
+
+		local zones = {
+			qte:FindFirstChild("Zone1"),
+			qte:FindFirstChild("Zone2"),
+			qte:FindFirstChild("Zone3"),
+		}
+
+		if not line or not zones[1] or not zones[2] or not zones[3] then
+			return
+		end
+
+		-- Detect whether the QTE or zone instances changed.
+		local zonesChanged = false
+
+		if not state.zones then
+			zonesChanged = true
+		else
+			for i = 1, 3 do
+				if state.zones[i] ~= zones[i] then
+					zonesChanged = true
+					break
+				end
+			end
+		end
+
+		if state.qte ~= qte or zonesChanged then
+			state.qte = qte
+			state.zones = zones
+			resetRound()
+		end
+
+		-- Wait after finishing a full set of zones.
+		if os.clock() < state.waitUntil then
+			return
+		end
+
+		-- QTE is still here after the delay, so start checking again.
+		if state.finishedRound then
+			resetRound()
+		end
+
+		local lineLeft, lineRight = getXBounds(line)
+
+		if not lineLeft or not lineRight then
+			return
+		end
+
+		local lineCenter = lineLeft + ((lineRight - lineLeft) / 2)
+		local allHit = true
+
+		-- Store/update whether each zone has been hit.
+		for i = 1, 3 do
+			local visible = isVisible(zones[i])
+
+			if visible then
+				state.seen[i] = true
+			elseif state.seen[i] then
+				-- The zone was visible before and is now hidden, so it was hit.
+				state.hit[i] = true
+			end
+
+			if not state.hit[i] then
+				allHit = false
+			end
+		end
+
+		-- All zones disappeared/hit. Wait a moment, then repeat if QTE still exists.
+		if allHit then
+			state.finishedRound = true
+			state.waitUntil = os.clock() + ROUND_RESET_DELAY
+			return
+		end
+
+		-- Click when the line is inside an unhit visible zone.
+		for i = 1, 3 do
+			if not state.hit[i] and isVisible(zones[i]) then
+				local left, right = getXBounds(zones[i])
+
+				if left and right and lineCenter >= left and lineCenter <= right then
+					if os.clock() - state.lastClick[i] >= CLICK_COOLDOWN then
+						state.lastClick[i] = os.clock()
+						click()
+					end
+
+					break
+				end
+			end
+		end
+	end
+end
+
 local function updateStaminaUI()
 	local StaminaText
 	local color = Color3.fromRGB(255, 255, 255)
@@ -3101,7 +3354,7 @@ local function updateStaminaUI()
 	end
 end
 
-local ui = gui.new("shitsaken | v" .. vn, Vector2.new(400, 567))
+local ui = gui.new("shitsaken | v" .. vn, Vector2.new(400, 638))
 
 ui:AddSection("visuals", true, {
 	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "ESP"},
@@ -3119,6 +3372,8 @@ ui:AddSection("visuals", true, {
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Two Time Ritual ESP", Variable = "Toggle_TwoTimeRespawnESP"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "C00lkidd Minion ESP", Variable = "Toggle_CKMinionESP"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "1x1x1x1 Zombie ESP", Variable = "Toggle_1xZombieESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Azure Seeker Bulb ESP", Variable = "Toggle_AzureBulbESP"},
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Azure Vine ESP", Variable = "Toggle_AzureVineESP"},
 
 })
 
@@ -3126,6 +3381,8 @@ ui:AddSection("automation", false, {
 	{object_type = "SectionTitle" , ID = ui:generateID(), Text = "automation"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Generator", Variable = "Toggle_SolveGen"},
 	{object_type = "Slider", ID = ui:generateID(), Text = "Solve Generator Speed", Variable = "Number_SolveGenSpeed", stepSize = 1, max = 11, min = 1},
+
+	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Azure QTE", Variable = "Toggle_AzureQTE"},
 
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Veeronica Trick", Variable = "Toggle_VeeTrick"},
 	{object_type = "Toggle", ID = ui:generateID(), Text = "Auto Nosferatu QTE", Variable = "Toggle_NosferatuAuto"},
@@ -3157,6 +3414,7 @@ local function TickFast()
 	updateESPPositions()
 	veeAT()
 	nosAuto()
+	azureAuto()
 	updateStaminaUI()
 
 	local speedMults = player.Character:FindFirstChild("SpeedMultipliers")
