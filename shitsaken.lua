@@ -4,7 +4,7 @@ if _G.StopESP then
 end
 
 
-local vn = "2.2.4"
+local vn = "2.2.5"
 local lastNotif = 0
 local nosCooldown = 0
 local stamina
@@ -152,7 +152,7 @@ end
 LoadConfig()
 
 local function debugPrint(text:string)
-	if config["DebugMode"] then
+	if config["DebugMode"] == true then
 		print(text)
 	end
 end
@@ -2452,12 +2452,6 @@ local function updateESPPositions()
 
 			if espData.class == "Character" then
 				espData.uiparts.title.Text = espData.originalName
-			elseif espData.root.Name == "Hitbox" or espData.root.Name == "RootPart" then
-				-- Graffiti's root is the generic "Hitbox" part, and Azure Bulb/Vine's
-				-- root is "RootPart" (espData.class is always "Object" here, not the
-				-- real class name -- espFuncs.Object hardcodes that for draw dispatch),
-				-- so neither will match anything in nameToTitle. Title text was already
-				-- set correctly at creation time -- leave it alone.
 			else
 				local name = getNamefromObjectName(espData.root.Name)
 
@@ -2472,14 +2466,11 @@ local function updateESPPositions()
 					end
 
 					espData.uiparts.title.Text = name
-				else
-					for _, drawing in pairs(espData.uiparts) do
-						drawing.Visible = false
-						drawing:Remove()
-					end
-
-					table.remove(espDrawings, i)
 				end
+				-- else: root's name doesn't match any keyword in nameToTitle (e.g.
+				-- "Hitbox", "RootPart", "1x1x1x1Zombie"). Title text was already set
+				-- correctly at creation time via espAdd's `title` argument, so just
+				-- leave it as-is instead of deleting the whole esp entry.
 			end
 		else
 			for _, drawing in pairs(espData.uiparts) do
@@ -2506,7 +2497,7 @@ local function espAdd(class: string, title: string, objects, root)
 	for _, object in objects do
 		if class == "TwoTimeRespawn" or class == "VeeGraffiti" then
 			table.insert(cleanobjectlist, object)
-		elseif (class == "AzureBulb" or class == "AzureVine" or table.find(partWhitelist, object.Name))
+		elseif ((class ~= "Survivor" and class ~= "Killer") or table.find(partWhitelist, object.Name))
 			and (
 				object.ClassName == "MeshPart"
 					or object.ClassName == "Part"
@@ -2863,7 +2854,6 @@ local function addObjects()
 			and object:FindFirstChild("Humanoid")
 			and config["Toggle_CKMinionESP"] then
 
-			debugPrint("Added c00lkidd minion to ESP")
 
 			espAdd(
 				"CKMinion",
